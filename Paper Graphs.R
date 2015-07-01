@@ -481,45 +481,47 @@ lm <- ed4 %>%
 cor(select(lm, mr, mscrt, mafdrt, mtut))
 #cor.test(~ mscrt + mafdrt, new)
 
-all <- lm(mtut ~ mr + mscrt, lm)
-summary(all)  
+sr <- lm(mtut ~ mr + mscrt, lm)
+summary(sr)
+
+lmr <- ed4 %>%
+  ungroup() %>%
+  filter(r< 25, scrt > 0) %>%
+  select(sub, mscrt, mafdrt, mtut, mr, rtype) %>%
+  unique() %>%
+  mutate(tc = (mtut - mean(mtut))/sd(mtut),
+         sc = (mscrt - mean(mscrt))/sd(mscrt),
+         fc = (mafdrt - mean(mafdrt, na.rm = TRUE))/sd(mafdrt, na.rm = TRUE),
+         rc = (mr - mean(mr))/sd(mr))
+
+srr <- lm(mtut ~ mr*rtype + mscrt*rtype, lmr)
+summary(srr)
   
 # Linear Mixed-Effects Model
 lmem <- ed4 %>%
   filter(r < 25, scrt > 0) %>%
-  subset(select = c(sub, tnum, r, scrt, afdrt, tutra2, rtype)) %>%
+  select(sub, tnum, r, scrt, afdrt, tutra2) %>%
   unique() %>%
   group_by(sub) %>%
-  mutate(sdr = sd(r),
-         rc = (r - mean(r))/sd(r),
+  mutate(rc = (r - mean(r))/sd(r),
          sc = (scrt - mean(scrt))/sd(scrt),
          fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
          tc = (tutra2 - mean(tutra2))/sd(tutra2))
 
-
-
-sd <- lmem %>%
-  subset(select = c(sub, sdr, tc)) %>%
-  unique()
-
-ggplot(sd, aes(sdr))+
-  geom_histogram()
-
-  sc <- lmer(tc ~ sc + (sc|sub), lmem)
-  fc <- lmer(tc ~ fc + (fc|sub), lmem)
-  rc <- lmer(tc ~ rc + (rc|sub), lmem)
-  scfc <- lmer(tc ~ sc + fc + (sc + fc|sub), lmem)
-  scrc <- lmer(tc ~ sc*rtype + rc*rtype + (sc*rtype + rc*rtype|sub), lmem)
-  fcrc <- lmer(tc ~ fc + rc + (fc + rc|sub), lmem)
-  all <- lmer(tc ~ sc + fc + rc + (sc + fc + rc|sub), lmem)
+scrc <- lmer(tc ~ sc + rc + (sc + rc|sub), lmem)
+summary(scrc)
   
-  anova(rc, scrc)
-  
-  summary(scrc)
-  
-  ggplot(lmem, aes(tc, rc))+
-    geom_point()+
-    facet_wrap(~sub)+
-    geom_jitter()
+lmemr <- ed4 %>%
+  filter(r < 25, scrt > 0) %>%
+  select(sub, tnum, r, scrt, afdrt, tutra2, rtype) %>%
+  unique() %>%
+  group_by(sub) %>%
+  mutate(rc = (r - mean(r))/sd(r),
+         sc = (scrt - mean(scrt))/sd(scrt),
+         fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
+         tc = (tutra2 - mean(tutra2))/sd(tutra2))
 
-# check histograms, sd of tut score of subjects
+scrcr <- lmer(tc ~ sc*rtype + rc*rtype + (sc*rtype + rc*rtype|sub), lmemr)
+summary(scrcr)
+
+anova(rc, scrc)
