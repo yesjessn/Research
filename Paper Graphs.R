@@ -35,7 +35,7 @@ td <- filter %>%
 
 # Add TUT scores from last and remove any trials without a TUT score to fill with
 df3 <- td %>%
-  group_by(RECORDING_SESSION_LABEL) %>%
+  group_by(sub) %>%
   mutate(tutra2 = na.locf(tutra,
                           fromLast  = TRUE,
                           na.rm     = FALSE)) %>%
@@ -43,7 +43,7 @@ df3 <- td %>%
 
 # Physiological Data
 pd1 <- df3 %>%
-  group_by(RECORDING_SESSION_LABEL) %>%
+  group_by(sub) %>%
   mutate(
     # Rates
     hirate = sum(rtype == 'hi') / (sum(rtype == 'hi') + sum(rtype == 'mi')),
@@ -55,13 +55,13 @@ pd1 <- df3 %>%
 pd1$farate[pd1$farate == "0"] <- 0.000001
 
 pd2 <- pd1 %>%
-  group_by(RECORDING_SESSION_LABEL) %>%
+  group_by(sub) %>%
   mutate(dp   = qnorm(hirate) - qnorm(farate), # Dprime 
          mtut = mean(tutra2))                  # Mean TUT
 
 
 pd3 <- pd2 %>%
-  group_by(RECORDING_SESSION_LABEL, rtype) %>%
+  group_by(sub, rtype) %>%
   mutate(mrt = mean(rt))                       #  Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
 
   # Graph: number of participants with rtype for tut level
@@ -165,34 +165,34 @@ pd3 <- pd2 %>%
 
 # Eye Data
 ed <- pd2 %>%
-  group_by(RECORDING_SESSION_LABEL) %>%
+  group_by(sub) %>%
   mutate(scrt   = SACCADE_COUNT/rt,               # Saccade Count/RT
          mscrt  = mean(scrt),                     # Mean Saccade Count/RT
          afdrt  = AVERAGE_FIXATION_DURATION/rt,   # Average Fixation Duration/RT
          mafdrt = mean(afdrt, na.rm = TRUE))      # Mean Average Fixation Duration/RT
 
 edr <- pd2 %>%
-  group_by(RECORDING_SESSION_LABEL, rtype) %>%
+  group_by(sub, rtype) %>%
   mutate(scrtr    = SACCADE_COUNT/rt,               # Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
          mscrtr   = mean(scrtr),                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
          afdrtr   = AVERAGE_FIXATION_DURATION/rt,   # Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
          mfrtr    = mean(afdrtr, na.rm = TRUE))      # Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
 
 ed2 <- ed %>%
-  group_by(RECORDING_SESSION_LABEL) %>%
+  group_by(sub) %>%
   mutate(viacrt = VISITED_INTEREST_AREA_COUNT/rt, # Visited Interest Area Count/RT
          miacrt = mean(viacrt))                   # Mean Visited Interest Area Count/RT
 
 ed3 <- ed2 %>%
-  group_by(RECORDING_SESSION_LABEL, tnum) %>%
+  group_by(sub, tnum) %>%
   mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
 
 ed4 <- ed3 %>%
-  group_by(RECORDING_SESSION_LABEL) %>%
+  group_by(sub) %>%
   mutate(mr = mean(r, na.rm = TRUE))  # Mean IA Run Count-Trial Total Visited IA Count
 
 ed4r <- ed3 %>%
-  group_by(RECORDING_SESSION_LABEL, rtype) %>%
+  group_by(sub, rtype) %>%
   mutate(mrr = mean(r, na.rm = TRUE))  # Mean IA Run Count-Trial Total Visited IA Count for correct rejection, false alarm, hit, and miss
 
   # Graph: mean saccade count/rt versus mtut
@@ -343,7 +343,7 @@ ed4r <- ed3 %>%
 
   # Graph: mean visited interest area count/rt v mean TUT
   ct5 <- ed2 %>%
-    subset(select = c(RECORDING_SESSION_LABEL, mtut, miacrt)) %>%
+    subset(select = c(sub, mtut, miacrt)) %>%
     unique()
   cor.test(ct5$mtut, ct5$miacrt)
   
@@ -369,7 +369,7 @@ ed4r <- ed3 %>%
 
 # Graph: mean interest area count v mean average fixation duration per unit time
 ct6 <- ed2 %>%
-  subset(select = c(RECORDING_SESSION_LABEL, mafdrt, miarc)) %>%
+  subset(select = c(sub, mafdrt, miarc)) %>%
   unique()
 cor.test(ct6$mafdrt, ct6$miarc)
 
@@ -481,7 +481,7 @@ lm <- ed4 %>%
 cor(select(lm, mr, mscrt, mafdrt, mtut))
 #cor.test(~ mscrt + mafdrt, new)
 
-sr <- lm(mtut ~ mr + mscrt, lm)
+sr <- lm(tc ~ rc + sc, lm)
 summary(sr)
 
 lmr <- ed4 %>%
@@ -494,11 +494,12 @@ lmr <- ed4 %>%
          fc = (mafdrt - mean(mafdrt, na.rm = TRUE))/sd(mafdrt, na.rm = TRUE),
          rc = (mr - mean(mr))/sd(mr))
 
-srr <- lm(mtut ~ mr*rtype + mscrt*rtype, lmr)
+srr <- lm(tc ~ rc*rtype + sc*rtype, lmr)
 summary(srr)
   
 # Linear Mixed-Effects Model
 lmem <- ed4 %>%
+  ungroup() %>%
   filter(r < 25, scrt > 0) %>%
   select(sub, tnum, r, scrt, afdrt, tutra2) %>%
   unique() %>%
@@ -508,10 +509,17 @@ lmem <- ed4 %>%
          fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
          tc = (tutra2 - mean(tutra2))/sd(tutra2))
 
-scrc <- lmer(tc ~ sc + rc + (sc + rc|sub), lmem)
-summary(scrc)
+lmem %>%
+  filter(!afdrt == "NA") %>%
+  ungroup() %>%
+  select(tutra2, scrt, afdrt, r) %>%
+  cor()
+
+all <- lmer(tc ~ sc + fc + rc + (sc + fc + rc|sub), lmem)
+summary(all)
   
 lmemr <- ed4 %>%
+  ungroup() %>%
   filter(r < 25, scrt > 0) %>%
   select(sub, tnum, r, scrt, afdrt, tutra2, rtype) %>%
   unique() %>%
@@ -521,7 +529,43 @@ lmemr <- ed4 %>%
          fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
          tc = (tutra2 - mean(tutra2))/sd(tutra2))
 
-scrcr <- lmer(tc ~ sc*rtype + rc*rtype + (sc*rtype + rc*rtype|sub), lmemr)
-summary(scrcr)
+allr <- lmer(tc ~ sc*rtype + fc*rtype + rc*rtype + (sc*rtype + fc*rtype + rc*rtype|sub), lmemr)
+summary(allr)
 
 anova(rc, scrc)
+
+cc <- ed4 %>%
+  select(sub, tcat, hirate, crrate, farate, mirate) %>%
+  unique()
+
+ggplot(cc, aes(tcat, crrate))+
+  geom_boxplot(colour = "dimgrey")+
+  labs(list(x = "Category",
+            y = "Correct Rejection Rate"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "Times New Roman",
+                                         size   = 22),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "Times New Roman",
+                                         size   = 22))
+
+ggplot(cc, aes(tcat, hirate))+
+  geom_boxplot(colour = "dimgrey")+
+  labs(list(x = "Category",
+            y = "Hit Rate"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "Times New Roman",
+                                         size   = 22),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "Times New Roman",
+                                         size   = 22))
