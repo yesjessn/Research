@@ -1,4 +1,5 @@
 # Paper Graphs
+library(broom)
 library(dplyr)
 library(extrafont)
 library(ggplot2)
@@ -42,39 +43,36 @@ df3 <- td %>%
   filter(!is.na(tutra2))
 
 # Physiological Data
-pd1 <- df3 %>%
+pd <- df3 %>%
   group_by(sub) %>%
-  mutate(
-    # Rates
-    hirate = sum(rtype == 'hi') / (sum(rtype == 'hi') + sum(rtype == 'mi')),
-    crrate = sum(rtype == 'cr') / (sum(rtype == 'cr') + sum(rtype == 'fa')),
-    mirate = sum(rtype == 'mi') / (sum(rtype == 'hi') + sum(rtype == 'mi')),
-    farate = sum(rtype == 'fa') / (sum(rtype == 'cr') + sum(rtype == 'fa')))
+  mutate(crrate = sum(rtype == 'cr') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # Correct Rejection Rate
+         hirate = sum(rtype == 'hi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Hit Rate
+         farate = sum(rtype == 'fa') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # False Alarm Rate
+         mirate = sum(rtype == 'mi') / (sum(rtype == 'hi') + sum(rtype == 'mi'))) # Miss Rate
 
 # Fix false alarm rate
-pd1$farate[pd1$farate == "0"] <- 0.000001
+pd$farate[pd$farate == "0"] <- 0.000001
 
-pd2 <- pd1 %>%
+pd2 <- pd %>%
   group_by(sub) %>%
   mutate(dp   = qnorm(hirate) - qnorm(farate), # Dprime 
          mtut = mean(tutra2))                  # Mean TUT
-
 
 pd3 <- pd2 %>%
   group_by(sub, rtype) %>%
   mutate(mrt = mean(rt))                       #  Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
 
-  # Graph: number of participants with rtype for tut level
-  table <- pd1 %>%
+  # Table 1: number of participants with rtype for tut level
+  t <- pd1 %>%
     count(rtype, tutra2) %>%
     spread(rtype, n)
 
-  # Graph: number of subjects with mean tut level
-  pd4 <- pd2 %>%
+  # Graph 1: number of subjects with mean tut level
+  g <- pd2 %>%
     subset(select = c(sub, mtut)) %>%
     unique()
 
-  ggplot(pd4, aes(mtut))+
+  ggplot(g, aes(mtut))+
     geom_histogram(breaks = c(0, 1, 2, 3, 4, 5),
                    colour = "dimgrey",
                    fill   = "black")+
@@ -89,13 +87,13 @@ pd3 <- pd2 %>%
                                            family = "Times New Roman",
                                            size   = 22))
 
-  # Graph: dprime versus mean TUT
-  ct1 <- pd2 %>%
+  # Graph 2: dprime versus mean TUT
+  g2 <- pd2 %>%
     subset(select = c(sub, mtut, dp)) %>%
     unique()
-  cor.test(ct1$mtut, ct1$dp)
+  cor.test(g2$mtut, g2$dp)
   
-  ggplot(ct1, aes(mtut, dp))+
+  ggplot(g2, aes(mtut, dp))+
     geom_point(colour = "dimgrey",
                size   = 2)+
     geom_smooth(colour  = "black",
@@ -115,34 +113,34 @@ pd3 <- pd2 %>%
                                            family = "Times New Roman",
                                            size   = 22))
 
-  # Graph: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
-  ct2 <- pd3 %>%
+  # Graph 3: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
+  g3 <- pd3 %>%
     subset(select = c(sub, mtut, mrt, rtype)) %>%
     unique()
 
-  ct2cr <- ct2 %>%
+  g3cr <- g3 %>%
     filter(rtype == "cr")
-  cor.test(ct2cr$mtut, ct2cr$mrt)
+  cor.test(g3cr$mtut, g3cr$mrt)
 
-  ct2fa <- ct2 %>%
+  g3fa <- g3 %>%
     filter(rtype == "fa")
-  cor.test(ct2fa$mtut, ct2fa$mrt)
+  cor.test(g3fa$mtut, g3fa$mrt)
 
-  ct2h <- ct2 %>%
+  g3h <- g3 %>%
     filter(rtype == "hi")
-  cor.test(ct2h$mtut, ct2h$mrt)
+  cor.test(g3h$mtut, g3h$mrt)
 
-  ct2m <- ct2 %>%
+  g3m <- g3 %>%
     filter(rtype == "mi")
-  cor.test(ct2m$mtut, ct2m$mrt)
+  cor.test(g3m$mtut, g3m$mrt)
   
     # Changing names of rtype
-    levels(ct2$rtype)[levels(ct2$rtype)=="cr"] <- "Correct Rejection"
-    levels(ct2$rtype)[levels(ct2$rtype)=="fa"] <- "False Alarm"
-    levels(ct2$rtype)[levels(ct2$rtype)=="hi"] <- "Hit"
-    levels(ct2$rtype)[levels(ct2$rtype)=="mi"] <- "Miss"
+    levels(g3$rtype)[levels(g3$rtype)=="cr"] <- "Correct Rejection"
+    levels(g3$rtype)[levels(g3$rtype)=="fa"] <- "False Alarm"
+    levels(g3$rtype)[levels(g3$rtype)=="hi"] <- "Hit"
+    levels(g3$rtype)[levels(g3$rtype)=="mi"] <- "Miss"
   
-  ggplot(ct2, aes(mtut, mrt))+
+  ggplot(g3, aes(mtut, mrt))+
     geom_point(colour = "dimgrey",
                size   = 2)+
     facet_wrap(~rtype)+
@@ -173,9 +171,7 @@ ed <- pd2 %>%
 
 edr <- pd2 %>%
   group_by(sub, rtype) %>%
-  mutate(scrtr    = SACCADE_COUNT/rt,               # Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mscrtr   = mean(scrtr),                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         afdrtr   = AVERAGE_FIXATION_DURATION/rt,   # Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
+  mutate(mscrtr   = mean(scrtr),                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
          mfrtr    = mean(afdrtr, na.rm = TRUE))      # Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
 
 ed2 <- ed %>%
@@ -458,7 +454,7 @@ ggplot(ct6, aes(mafdrt, miarc))+
                 method = "lm",
                 se = FALSE)+
     labs(list(x = "Mean TUT Score", 
-              y = "Mean Regressions"))+
+              y = "Mean Refixations"))+
     theme(axis.title.x      = element_text(vjust = -0.2),
           axis.title.y      = element_text(vjust = 1.2),
           legend.text       = element_text(face   = "bold",
@@ -509,7 +505,7 @@ ggplot(lm, aes(tc, sc))+
               method  = "lm",
               se      = FALSE)+
   labs(list(x = "Mean TUT Score",
-            y = "Mean Saccade Count\nper Unit Time"))+
+            y = "Mean Saccade Count"))+
   theme(axis.title.x      = element_text(vjust = -0.2),
         axis.title.y      = element_text(vjust = 1.2),
         legend.text       = element_text(face   = "bold",
@@ -530,7 +526,7 @@ ggplot(lmr, aes(tc, sc))+
               method  = "lm",
               se      = FALSE)+
   labs(list(x = "Mean TUT Score",
-            y = "Mean Saccade Count\nper Unit Time"))+
+            y = "Mean Saccade Count"))+
   theme(axis.title.x      = element_text(vjust = -0.2),
         axis.title.y      = element_text(vjust = 1.2),
         legend.text       = element_text(face   = "bold",
@@ -555,12 +551,22 @@ lmem <- ed4 %>%
          fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
          tc = (tutra2 - mean(tutra2))/sd(tutra2))
 
-lmem %>%
-  filter(!afdrt == "NA") %>%
-  ungroup() %>%
-  select(tutra2, scrt, afdrt, r) %>%
-  cor()
 
+  corsub3 <- lmem %>%
+    filter(!afdrt == "NA", !sub == "31_lc") %>%
+    ungroup() %>%
+    group_by(sub) %>%
+    select(tutra2, scrt, afdrt, r) %>%
+    do(tidy(cor.test(~tutra2 + r, .))) %>% 
+    mutate(comp = 'tutra2_r')
+
+  bigdf <- bind_rows(corsub1, corsub2, corsub3)
+  
+  cor <- bigdf %>%
+    group_by(comp) %>%
+    summarise(cs = (mean(estimate)))
+  
+ # mean r values or look at distribution on a plot 
 all <- lmer(tc ~ sc + fc + rc + (sc + fc + rc|sub), lmem)
 summary(all)
   
