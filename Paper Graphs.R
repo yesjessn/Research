@@ -48,27 +48,19 @@ pd <- df3 %>%
   mutate(crrate = sum(rtype == 'cr') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # Correct Rejection Rate
          hirate = sum(rtype == 'hi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Hit Rate
          farate = sum(rtype == 'fa') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # False Alarm Rate
-         mirate = sum(rtype == 'mi') / (sum(rtype == 'hi') + sum(rtype == 'mi'))) # Miss Rate
-
-# Fix false alarm rate
-pd$farate[pd$farate == "0"] <- 0.000001
-
-pd2 <- pd %>%
-  group_by(sub) %>%
-  mutate(dp   = qnorm(hirate) - qnorm(farate), # Dprime 
-         mtut = mean(tutra2))                  # Mean TUT
-
-pd3 <- pd2 %>%
+         mirate = sum(rtype == 'mi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Miss Rate
+         dp     = qnorm(hirate) - qnorm(farate),                                  # Dprime 
+         mtut   = mean(tutra2)) %>%                                               # Mean TUT
   group_by(sub, rtype) %>%
-  mutate(mrt = mean(rt))                       #  Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
+  mutate(mrt = mean(rt))                                                          # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
 
   # Table 1: number of participants with rtype for tut level
-  t <- pd1 %>%
+  t <- pd %>%
     count(rtype, tutra2) %>%
     spread(rtype, n)
 
   # Graph 1: number of subjects with mean tut level
-  g <- pd2 %>%
+  g <- pd %>%
     subset(select = c(sub, mtut)) %>%
     unique()
 
@@ -87,8 +79,9 @@ pd3 <- pd2 %>%
                                            family = "Times New Roman",
                                            size   = 22))
 
-  # Graph 2: dprime versus mean TUT
-  g2 <- pd2 %>%
+  # Graph 2: dprime versus mean TUT and remove subject 12_sw because of 0 false alarm rate
+  g2 <- pd %>%
+    filter(!sub == "12_sw") %>% 
     subset(select = c(sub, mtut, dp)) %>%
     unique()
   cor.test(g2$mtut, g2$dp)
@@ -114,7 +107,7 @@ pd3 <- pd2 %>%
                                            size   = 22))
 
   # Graph 3: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
-  g3 <- pd3 %>%
+  g3 <- pd %>%
     subset(select = c(sub, mtut, mrt, rtype)) %>%
     unique()
 
@@ -160,48 +153,62 @@ pd3 <- pd2 %>%
           text              = element_text(face   = "bold",
                                            family = "Times New Roman",
                                            size   = 22))
-
+  
+  
 # Eye Data
-ed <- pd2 %>%
+ed <- pd %>%
   group_by(sub) %>%
-  mutate(scrt   = SACCADE_COUNT/rt,               # Saccade Count/RT
-         mscrt  = mean(scrt),                     # Mean Saccade Count/RT
-         afdrt  = AVERAGE_FIXATION_DURATION/rt,   # Average Fixation Duration/RT
-         mafdrt = mean(afdrt, na.rm = TRUE))      # Mean Average Fixation Duration/RT
-
-edr <- pd2 %>%
+  mutate(scrt   = SACCADE_COUNT/rt,                               # Saccade Count/RT
+         mscrt  = mean(scrt),                                     # Mean Saccade Count/RT
+         afdrt  = AVERAGE_FIXATION_DURATION/rt,                   # Average Fixation Duration/RT
+         mafdrt = mean(afdrt, na.rm = TRUE),                      # Mean Average Fixation Duration/RT
+         viacrt = VISITED_INTEREST_AREA_COUNT/rt,                 # Visited Interest Area Count/RT
+         miacrt = mean(viacrt)) %>%                               # Mean Visited Interest Area Count/RT
   group_by(sub, rtype) %>%
-  mutate(mscrtr   = mean(scrtr),                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mfrtr    = mean(afdrtr, na.rm = TRUE))      # Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
-
-ed2 <- ed %>%
-  group_by(sub) %>%
-  mutate(viacrt = VISITED_INTEREST_AREA_COUNT/rt, # Visited Interest Area Count/RT
-         miacrt = mean(viacrt))                   # Mean Visited Interest Area Count/RT
-
-ed3 <- ed2 %>%
+  mutate(mscrtr = mean(scrt),                                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mfdrtr = mean(afdrt, na.rm = TRUE)) %>%                  # Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
   group_by(sub, tnum) %>%
-  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
-
-ed4 <- ed3 %>%
+  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT) %>%  #IA Run Count-Trial Total Visited IA Count
   group_by(sub) %>%
-  mutate(mr = mean(r, na.rm = TRUE))  # Mean IA Run Count-Trial Total Visited IA Count
+  mutate(mr = mean(r, na.rm = TRUE)) %>%                          # Mean Refixations
+  group_by(sub, rtype) %>% 
+  mutate(mrr = mean(r, na.rm = TRUE))                             # Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
 
-ed3r <- edr %>%
+# Z-normalized Data and remove abnormalities
+zd <- ed %>%
   ungroup() %>%
-  group_by(sub, tnum) %>%
-  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
+  filter(r < 25, scrt > 0) %>%
+  select(sub, rtype, mtut, mscrt, mafdrt, miacrt, mr, mscrtr, mfdrtr,  mrr) %>%
+  unique() %>%
+  mutate(mtc = (mtut - mean(mtut))/sd(mtut),        # Centered Mean TUT Score
+         msc = (mscrt - mean(mscrt))/sd(mscrt),     # Centered Mean Saccade Count/RT
+         mfc = (mafdrt - mean(mafdrt))/sd(mafdrt),  # Centered Mean Average Fixation Duration/RT 
+         mvc = (miacrt - mean(miacrt)/sd(miacrt)),  # Centered Mean Visited Interest Area Count/RT
+         mrc = (mr - mean(mr))/sd(mr),              # Centered Mean Refixations
+         mscr = (mscrtr - mean(mscrtr))/sd(mscrtr), # Centered Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mfcr = (mfdrtr - mean(mfdrtr))/sd(mfdrtr), # Centered Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mrcr = (mrr - mean(mrr))/sd(mrr))          # Centered Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
 
-ed4r <- ed3r %>%
-  group_by(sub, rtype) %>%
-  mutate(mrr = mean(r, na.rm = TRUE))  # Mean IA Run Count-Trial Total Visited IA Count
+  # Table 2: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations
+  cm <- zd %>%
+    select(mtc, msc, mfc, mrc) %>%
+    unique()
+    cor(cm)
 
-  # Graph: mean saccade count/rt versus mtut
-  ct3a <- ed %>%
-  subset(select = c(sub, mtut, mscrt)) %>%
+  # Linear regression for centered mean TUT score, centered mean saccade count/RT, and centered refixations
+  lr <- lm(mtc ~ msc + mrc, cm)
+  summary(lr)
+
+  
+  
+  
+  
+  # Graph 4a: centered mean saccade count/rt versus centered mean TUT score
+  g4a <- zd %>%
+  subset(select = c(sub, mtc, msc)) %>%
   unique()
 
-  ggplot(ct3a, aes(mtut, mscrt))+
+  ggplot(g4a, aes(mtc, msc))+
     geom_point(colour = 'dimgrey',
                size   = 2)+
     geom_smooth(colour = "black",
@@ -621,3 +628,22 @@ ggplot(cc, aes(tcat, hirate))+
         text              = element_text(face   = "bold",
                                          family = "Times New Roman",
                                          size   = 22))
+
+mutate(tc = (tutra2 - mean(tutra2))/sd(tutra2),
+       sc = (scrt - mean(scrt))/sd(scrt),
+       fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),  
+       
+       rc = (r - mean(r))/sd(r),
+       mrc = mean(tc),                                                    # Mean Centered TUT Score
+       msc  = mean(sc),                                                   # Mean Centered Saccade Count/RT
+       mfc = mean(fc),                                                    # Mean Centered Average Fixation Duration/RT
+       mvc = mean(vc),                                                    # Mean Centered Visited Interest Area Count/RT
+       mrc = mean(rc, na.rm = TRUE)) %>%                                  # Mean Centered IA Run Count-Trial Total Visited IA Count
+  group_by(sub, rtype) %>%
+  mutate(tcr = (tutra2 - mean(tutra2))/sd(tutra2),                          # Centered TUT Score for Correct Rejection, False Alarm, Hit, and Miss
+         scr = (scrt - mean(scrt))/sd(scrt),                                # Centered Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
+         fcr = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE), # Centered Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
+         rcr = (r - mean(r))/sd(r),                                         # Centered IA Run Count-Trial Total Visited IA Count for Correct Rejection, False Alarm, Hit, and Miss
+         mscr   = mean(scr),                                                # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mfcr    = mean(fcr),                                               # Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mrcr = mean(rc, na.rm = TRUE))    
