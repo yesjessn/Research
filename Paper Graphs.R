@@ -42,7 +42,7 @@ df3 <- td %>%
                           na.rm     = FALSE)) %>%
   filter(!is.na(tutra2))
 
-# Physiological Data
+# Physiological Data----------------------
 pd <- df3 %>%
   group_by(sub) %>%
   mutate(crrate = sum(rtype == 'cr') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # Correct Rejection Rate
@@ -61,7 +61,7 @@ pd <- df3 %>%
 
   # Graph 1: number of subjects with mean tut level
   g <- pd %>%
-    subset(select = c(sub, mtut)) %>%
+    select(sub, mtut) %>%
     unique()
 
   ggplot(g, aes(mtut))+
@@ -82,7 +82,7 @@ pd <- df3 %>%
   # Graph 2: dprime versus mean TUT and remove subject 12_sw because of 0 false alarm rate
   g2 <- pd %>%
     filter(!sub == "12_sw") %>% 
-    subset(select = c(sub, mtut, dp)) %>%
+    select(mtut, dp) %>%
     unique()
   cor.test(g2$mtut, g2$dp)
   
@@ -108,7 +108,7 @@ pd <- df3 %>%
 
   # Graph 3: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
   g3 <- pd %>%
-    subset(select = c(sub, mtut, mrt, rtype)) %>%
+    select(sub, mtut, mrt, rtype) %>%
     unique()
 
   g3cr <- g3 %>%
@@ -155,8 +155,8 @@ pd <- df3 %>%
                                            size   = 22))
   
   
-# Eye Data
-ed <- pd %>%
+# Eye Data: between subjects----------------------
+edb <- pd %>%
   group_by(sub) %>%
   mutate(scrt   = SACCADE_COUNT/rt,                               # Saccade Count/RT
          mscrt  = mean(scrt),                                     # Mean Saccade Count/RT
@@ -175,10 +175,10 @@ ed <- pd %>%
   mutate(mrr = mean(r, na.rm = TRUE))                             # Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
 
 # Z-normalized Data and remove abnormalities
-zd <- ed %>%
+zd <- edb %>%
   ungroup() %>%
   filter(r < 25, scrt > 0) %>%
-  select(sub, rtype, mtut, mscrt, mafdrt, miacrt, mr, mscrtr, mfdrtr,  mrr) %>%
+  select(sub, tcat, rtype, mtut, mscrt, mafdrt, miacrt, mr, mscrtr, mfdrtr, mrr) %>%
   unique() %>%
   mutate(mtc = (mtut - mean(mtut))/sd(mtut),        # Centered Mean TUT Score
          msc = (mscrt - mean(mscrt))/sd(mscrt),     # Centered Mean Saccade Count/RT
@@ -191,25 +191,22 @@ zd <- ed %>%
 
   # Table 2: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations
   cm <- zd %>%
-    select(mtc, msc, mfc, mrc) %>%
+    select(mtut, msc, mfc, mrc) %>%
     unique()
     cor(cm)
 
   # Linear regression for centered mean TUT score, centered mean saccade count/RT, and centered refixations
-  lr <- lm(mtc ~ msc + mrc, cm)
+  lr <- lm(mtut ~ msc + mrc, cm)
   summary(lr)
 
-  
-  
-  
-  
   # Graph 4a: centered mean saccade count/rt versus centered mean TUT score
   g4a <- zd %>%
-  subset(select = c(sub, mtc, msc)) %>%
-  unique()
-
-  ggplot(g4a, aes(mtc, msc))+
-    geom_point(colour = 'dimgrey',
+    select(tcat, mtc, msc) %>%
+    unique()
+  cor.test(g4a$mtc, g4a$msc)
+  
+  ggplot(g4a, aes(mtc, msc, color = tcat))+
+    geom_point(
                size   = 2)+
     geom_smooth(colour = "black",
                 method  = "lm",
@@ -227,7 +224,73 @@ zd <- ed %>%
           text              = element_text(face   = "bold",
                                            family = "Times New Roman",
                                            size   = 22))
+  
+  # Graph 5a: centered mean refixations versus centered mean TUT score
+  g5a <- zd %>%
+    select(mtc, mrc) %>%
+    unique()
+  cor.test(g5a$mtc, g5a$mrc)
+  
+  ggplot(g5a, aes(mtc, mrc))+
+    geom_point(colour = "dimgrey",
+               size = 2)+
+    geom_smooth(colour = "black",
+                method = "lm",
+                se = FALSE)+
+    labs(list(x = "Mean TUT Score", 
+              y = "Mean Refixations"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+# Eye Data: within subject----------------------
+edw <- pd %>%
+  group_by(sub) %>%
+  mutate(scrt   = SACCADE_COUNT/rt,                           # Saccade Count/RT
+         afdrt  = AVERAGE_FIXATION_DURATION/rt) %>%           # Average Fixation Duration/RT
+  group_by(sub, tnum) %>%
+  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
 
+# Z-normalized Data and remove abnormalities
+zd2 <- edw %>%
+ ungroup() %>%
+  filter(r < 25, scrt > 0) %>%
+  select(sub, tnum, r, scrt, afdrt, tutra2) %>%
+  unique() %>%
+  group_by(sub) %>%
+  mutate(tc = (tutra2 - mean(tutra2))/sd(tutra2),                           # Centered TUT Score
+         sc = (scrt - mean(scrt))/sd(scrt),                                 # Centered Saccade Count/RT
+         fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),  # Centered Average Fixation Duration/RT
+         rc = (r - mean(r))/sd(r))                                          # Centered Refixations
+ 
+  # Table 3: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations 
+  corsub1 <- zd2 %>%
+    filter(!sub == "31_lc") %>%
+    ungroup() %>%
+    group_by(sub) %>%
+    select(tc, sc, fc, rc) %>%
+    do(tidy(cor.test(~tc + sc, .))) %>% 
+    mutate(comp = 'tc_sc')
+  
+  bigdf <- bind_rows(corsub1, corsub2, corsub3)
+  
+  cor <- bigdf %>%
+    group_by(comp) %>%
+    summarise(cs = (mean(estimate)))
+  
+  
+  
+  
+  
+  
   # Graph: mean saccade count/rt versus mtut by correct rejection, false alarm, hit, and miss
   ct3b <- edr %>%
     subset(select = c(sub, mtut, mscrtr, rtype)) %>%
@@ -401,30 +464,7 @@ ggplot(ct6, aes(mafdrt, miarc))+
                                          family = "Times New Roman",
                                          size   = 22))
 
-  # Graph: mean IA run count-trial total visited IA count versus mtut by correct rejection, false alarm, hit, and miss
-  ct5a <- ed4 %>%
-    subset(select = c(sub, mtut, mr)) %>%
-    unique()
-
-  ggplot(ct5a, aes(mtut, mr))+
-    geom_point(colour = "dimgrey",
-               size = 2)+
-    geom_smooth(colour = "black",
-                method = "lm",
-                se = FALSE)+
-    labs(list(x = "Mean TUT Score", 
-              y = "Mean Regressions"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
+  
 
   # Graph: mean IA run count-trial total visited IA count versus mtut by correct rejection, false alarm, hit, and miss
   ct5b <- ed4r %>%
@@ -559,19 +599,7 @@ lmem <- ed4 %>%
          tc = (tutra2 - mean(tutra2))/sd(tutra2))
 
 
-  corsub3 <- lmem %>%
-    filter(!afdrt == "NA", !sub == "31_lc") %>%
-    ungroup() %>%
-    group_by(sub) %>%
-    select(tutra2, scrt, afdrt, r) %>%
-    do(tidy(cor.test(~tutra2 + r, .))) %>% 
-    mutate(comp = 'tutra2_r')
-
-  bigdf <- bind_rows(corsub1, corsub2, corsub3)
   
-  cor <- bigdf %>%
-    group_by(comp) %>%
-    summarise(cs = (mean(estimate)))
   
  # mean r values or look at distribution on a plot 
 all <- lmer(tc ~ sc + fc + rc + (sc + fc + rc|sub), lmem)
@@ -628,22 +656,3 @@ ggplot(cc, aes(tcat, hirate))+
         text              = element_text(face   = "bold",
                                          family = "Times New Roman",
                                          size   = 22))
-
-mutate(tc = (tutra2 - mean(tutra2))/sd(tutra2),
-       sc = (scrt - mean(scrt))/sd(scrt),
-       fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),  
-       
-       rc = (r - mean(r))/sd(r),
-       mrc = mean(tc),                                                    # Mean Centered TUT Score
-       msc  = mean(sc),                                                   # Mean Centered Saccade Count/RT
-       mfc = mean(fc),                                                    # Mean Centered Average Fixation Duration/RT
-       mvc = mean(vc),                                                    # Mean Centered Visited Interest Area Count/RT
-       mrc = mean(rc, na.rm = TRUE)) %>%                                  # Mean Centered IA Run Count-Trial Total Visited IA Count
-  group_by(sub, rtype) %>%
-  mutate(tcr = (tutra2 - mean(tutra2))/sd(tutra2),                          # Centered TUT Score for Correct Rejection, False Alarm, Hit, and Miss
-         scr = (scrt - mean(scrt))/sd(scrt),                                # Centered Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         fcr = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE), # Centered Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
-         rcr = (r - mean(r))/sd(r),                                         # Centered IA Run Count-Trial Total Visited IA Count for Correct Rejection, False Alarm, Hit, and Miss
-         mscr   = mean(scr),                                                # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mfcr    = mean(fcr),                                               # Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mrcr = mean(rc, na.rm = TRUE))    
