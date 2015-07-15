@@ -52,12 +52,23 @@ pd <- df3 %>%
          dp     = qnorm(hirate) - qnorm(farate),                                  # Dprime 
          mtut   = mean(tutra2)) %>%                                               # Mean TUT
   group_by(sub, rtype) %>%
-  mutate(mrt = mean(rt))                                                          # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
-
+  mutate(mrt = mean(rt),                                                          # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
+         mtutr = mean(tutra2))                                                    # Mean TUT for Correct Rejection, False Alarm, Hit, and Miss
+         
   # Table 1: number of participants with rtype for tut level
   t <- pd %>%
-    count(rtype, tutra2) %>%
-    spread(rtype, n)
+    group_by(sub) %>%
+    select(sub, rtype, tnum) %>%
+    unique() %>%
+    mutate(crs = sum(rtype == 'cr'),
+           fas = sum(rtype == 'fa'),
+           his = sum(rtype == 'hi'),
+           mis = sum(rtype == 'mi')) %>%
+    ungroup() %>%
+    summarise(cr = mean(crs),
+           fa = mean(fas),
+           hi = mean(his),
+           mi = mean(mis))
 
   # Graph 1: number of subjects with mean tut level
   g <- pd %>%
@@ -108,24 +119,24 @@ pd <- df3 %>%
 
   # Graph 3: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
   g3 <- pd %>%
-    select(sub, mtut, mrt, rtype) %>%
+    select(sub, mtutr, mrt, rtype) %>%
     unique()
 
   g3cr <- g3 %>%
     filter(rtype == "cr")
-  cor.test(g3cr$mtut, g3cr$mrt)
+  cor.test(g3cr$mtutr, g3cr$mrt)
 
   g3fa <- g3 %>%
     filter(rtype == "fa")
-  cor.test(g3fa$mtut, g3fa$mrt)
+  cor.test(g3fa$mtutr, g3fa$mrt)
 
   g3h <- g3 %>%
     filter(rtype == "hi")
-  cor.test(g3h$mtut, g3h$mrt)
+  cor.test(g3h$mtutr, g3h$mrt)
 
   g3m <- g3 %>%
     filter(rtype == "mi")
-  cor.test(g3m$mtut, g3m$mrt)
+  cor.test(g3m$mtutr, g3m$mrt)
   
     # Changing names of rtype
     levels(g3$rtype)[levels(g3$rtype)=="cr"] <- "Correct Rejection"
@@ -133,13 +144,12 @@ pd <- df3 %>%
     levels(g3$rtype)[levels(g3$rtype)=="hi"] <- "Hit"
     levels(g3$rtype)[levels(g3$rtype)=="mi"] <- "Miss"
   
-  ggplot(g3, aes(mtut, mrt))+
+  ggplot(g3, aes(mtutr, mrt))+
     geom_point(colour = "dimgrey",
                size   = 2)+
     facet_wrap(~rtype)+
     geom_smooth(colour  = "black",
-                method  = "lm",
-                se      = FALSE)+
+                method  = "lm")+
     labs(list(x = "Mean TUT Score",
               y = "Mean Reaction Time"))+
     theme(axis.title.x      = element_text(vjust = -0.2),
@@ -157,12 +167,13 @@ pd <- df3 %>%
   
 # Eye Data: between subjects----------------------
 edb <- pd %>%
+  mutate(rts = rt/1000) %>%
   group_by(sub) %>%
-  mutate(scrt   = SACCADE_COUNT/rt,                               # Saccade Count/RT
+  mutate(scrt   = SACCADE_COUNT/rts,                               # Saccade Count/RT
          mscrt  = mean(scrt),                                     # Mean Saccade Count/RT
-         afdrt  = AVERAGE_FIXATION_DURATION/rt,                   # Average Fixation Duration/RT
+         afdrt  = AVERAGE_FIXATION_DURATION/rts,                   # Average Fixation Duration/RT
          mafdrt = mean(afdrt, na.rm = TRUE),                      # Mean Average Fixation Duration/RT
-         viacrt = VISITED_INTEREST_AREA_COUNT/rt,                 # Visited Interest Area Count/RT
+         viacrt = VISITED_INTEREST_AREA_COUNT/rts,                 # Visited Interest Area Count/RT
          miacrt = mean(viacrt)) %>%                               # Mean Visited Interest Area Count/RT
   group_by(sub, rtype) %>%
   mutate(mscrtr = mean(scrt),                                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
@@ -180,37 +191,39 @@ zd <- edb %>%
   filter(r < 25, scrt > 0) %>%
   select(sub, tcat, rtype, mtut, mscrt, mafdrt, miacrt, mr, mscrtr, mfdrtr, mrr) %>%
   unique() %>%
-  mutate(mtc = (mtut - mean(mtut))/sd(mtut),        # Centered Mean TUT Score
-         msc = (mscrt - mean(mscrt))/sd(mscrt),     # Centered Mean Saccade Count/RT
-         mfc = (mafdrt - mean(mafdrt))/sd(mafdrt),  # Centered Mean Average Fixation Duration/RT 
-         mvc = (miacrt - mean(miacrt)/sd(miacrt)),  # Centered Mean Visited Interest Area Count/RT
-         mrc = (mr - mean(mr))/sd(mr),              # Centered Mean Refixations
-         mscr = (mscrtr - mean(mscrtr))/sd(mscrtr), # Centered Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mfcr = (mfdrtr - mean(mfdrtr))/sd(mfdrtr), # Centered Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mrcr = (mrr - mean(mrr))/sd(mrr))          # Centered Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
+  mutate(mtc = (mtut - mean(mtut)),      # Centered Mean TUT Score
+         msc = (mscrt - mean(mscrt)),    # Centered Mean Saccade Count/RT
+         mfc = (mafdrt - mean(mafdrt)),  # Centered Mean Average Fixation Duration/RT 
+         mvc = (miacrt - mean(miacrt)),  # Centered Mean Visited Interest Area Count/RT
+         mrc = (mr - mean(mr)),          # Centered Mean Refixations
+         mscr = (mscrtr - mean(mscrtr)), # Centered Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mfcr = (mfdrtr - mean(mfdrtr)), # Centered Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
+         mrcr = (mrr - mean(mrr)))       # Centered Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
 
   # Table 2: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations
   cm <- zd %>%
-    select(mtut, msc, mfc, mrc) %>%
+    select(mscrt, mafdrt, mr) %>%
     unique()
     cor(cm)
 
   # Linear regression for centered mean TUT score, centered mean saccade count/RT, and centered refixations
-  lr <- lm(mtut ~ msc + mrc, cm)
+  lr <- zd %>%
+    select(mtut, mscrt, mr) %>%
+    unique() %>%
+    lm(mtut ~ mscrt + mr)
   summary(lr)
 
   # Graph 4a: centered mean saccade count/rt versus centered mean TUT score
   g4a <- zd %>%
-    select(tcat, mtc, msc) %>%
+    select(mtut, msc) %>%
     unique()
-  cor.test(g4a$mtc, g4a$msc)
+  cor.test(g4a$mtut, g4a$msc)
   
-  ggplot(g4a, aes(mtc, msc, color = tcat))+
-    geom_point(
+  ggplot(g4a, aes(mtut, msc))+
+    geom_point(colour = "dimgrey",
                size   = 2)+
     geom_smooth(colour = "black",
-                method  = "lm",
-                se      = FALSE)+
+                method  = "lm")+
     labs(list(x = "Mean TUT Score",
               y = "Mean Saccade Count\nper Unit Time"))+
     theme(axis.title.x      = element_text(vjust = -0.2),
@@ -227,11 +240,11 @@ zd <- edb %>%
   
   # Graph 5a: centered mean refixations versus centered mean TUT score
   g5a <- zd %>%
-    select(mtc, mrc) %>%
+    select(mtut, mrc) %>%
     unique()
-  cor.test(g5a$mtc, g5a$mrc)
+  cor.test(g5a$mtut, g5a$mrc)
   
-  ggplot(g5a, aes(mtc, mrc))+
+  ggplot(g5a, aes(mtut, mrc))+
     geom_point(colour = "dimgrey",
                size = 2)+
     geom_smooth(colour = "black",
@@ -266,25 +279,26 @@ zd2 <- edw %>%
   select(sub, tnum, r, scrt, afdrt, tutra2) %>%
   unique() %>%
   group_by(sub) %>%
-  mutate(tc = (tutra2 - mean(tutra2))/sd(tutra2),                           # Centered TUT Score
-         sc = (scrt - mean(scrt))/sd(scrt),                                 # Centered Saccade Count/RT
-         fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),  # Centered Average Fixation Duration/RT
-         rc = (r - mean(r))/sd(r))                                          # Centered Refixations
+  mutate(tc = (tutra2 - mean(tutra2)),                           # Centered TUT Score
+         sc = (scrt - mean(scrt)),                                 # Centered Saccade Count/RT
+         fc = (afdrt - mean(afdrt, na.rm = TRUE)),  # Centered Average Fixation Duration/RT
+         rc = (r - mean(r)))                                          # Centered Refixations
  
   # Table 3: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations 
-  corsub1 <- zd2 %>%
+  corsub2 <- zd2 %>%
     filter(!sub == "31_lc") %>%
     ungroup() %>%
     group_by(sub) %>%
-    select(tc, sc, fc, rc) %>%
-    do(tidy(cor.test(~tc + sc, .))) %>% 
-    mutate(comp = 'tc_sc')
+    select(sc, fc, rc) %>%
+    do(tidy(cor.test(~sc + rc, .))) %>% 
+    mutate(comp = 'sc_rc')
   
   bigdf <- bind_rows(corsub1, corsub2, corsub3)
   
   cor <- bigdf %>%
     group_by(comp) %>%
-    summarise(cs = (mean(estimate)))
+    summarise(cs = mean(estimate),
+              ps = mean(p.value))
   
   
   
@@ -656,3 +670,6 @@ ggplot(cc, aes(tcat, hirate))+
         text              = element_text(face   = "bold",
                                          family = "Times New Roman",
                                          size   = 22))
+
+
+# Look at why saccades are now positively correlated with mean TUT and see if refixations occured earlier or later in the trials
