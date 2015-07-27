@@ -50,10 +50,20 @@ pd <- df3 %>%
          farate = sum(rtype == 'fa') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # False Alarm Rate
          mirate = sum(rtype == 'mi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Miss Rate
          dp     = qnorm(hirate) - qnorm(farate),                                  # Dprime 
-         mtut   = mean(tutra2)) %>%                                               # Mean TUT
+         mtut   = mean(tutra2),                                                   # Mean TUT
+         mrt    = mean(rt)) %>%                                                   # Mean Reaction Time
   group_by(sub, rtype) %>%
-  mutate(mrt = mean(rt),                                                          # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
+  mutate(mrtr  = mean(rt),                                                        # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
          mtutr = mean(tutra2))                                                    # Mean TUT for Correct Rejection, False Alarm, Hit, and Miss
+
+
+# Centered Data
+cd <- pd %>%
+  ungroup() %>%
+  select(sub, rtype, mtut, mrt, mrtr, mtutr) %>%
+  unique() %>%
+  mutate(mrtrc = mrtr - mean(mrtr), # Mean Centered Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
+         mrtc  = (mrt - mean(mrt))) # Mean Centered Reaction Time
          
   # Table 1: number of participants with rtype for tut level
   t <- pd %>%
@@ -116,38 +126,20 @@ pd <- df3 %>%
           text              = element_text(face   = "bold",
                                            family = "Times New Roman",
                                            size   = 22))
-
-  # Graph 3: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
-  g3 <- pd %>%
-    select(sub, mtutr, mrt, rtype) %>%
+  
+  # Linear regression for mean TUT score and centered mean RT by correct rejection, false alarm, hit, and miss
+  lr <- lm(mtutr ~ mrtrc * rtype, cd)
+  summary(lr)
+  
+  # Graph 3: mean RT versus mean TUT score
+  g3 <- cd %>%
+    select(sub, mtut, mrtc) %>%
     unique()
-
-  g3cr <- g3 %>%
-    filter(rtype == "cr")
-  cor.test(g3cr$mtutr, g3cr$mrt)
-
-  g3fa <- g3 %>%
-    filter(rtype == "fa")
-  cor.test(g3fa$mtutr, g3fa$mrt)
-
-  g3h <- g3 %>%
-    filter(rtype == "hi")
-  cor.test(g3h$mtutr, g3h$mrt)
-
-  g3m <- g3 %>%
-    filter(rtype == "mi")
-  cor.test(g3m$mtutr, g3m$mrt)
+  cor.test(g3$mtut, g3$mrtc)
   
-    # Changing names of rtype
-    levels(g3$rtype)[levels(g3$rtype)=="cr"] <- "Correct Rejection"
-    levels(g3$rtype)[levels(g3$rtype)=="fa"] <- "False Alarm"
-    levels(g3$rtype)[levels(g3$rtype)=="hi"] <- "Hit"
-    levels(g3$rtype)[levels(g3$rtype)=="mi"] <- "Miss"
-  
-  ggplot(g3, aes(mtutr, mrt))+
+  ggplot(g3, aes(mtut, mrtc))+
     geom_point(colour = "dimgrey",
                size   = 2)+
-    facet_wrap(~rtype)+
     geom_smooth(colour  = "black",
                 method  = "lm")+
     labs(list(x = "Mean TUT Score",
@@ -164,16 +156,17 @@ pd <- df3 %>%
                                            family = "Times New Roman",
                                            size   = 22))
   
+
   
 # Eye Data: between subjects----------------------
 edb <- pd %>%
   mutate(rts = rt/1000) %>%
   group_by(sub) %>%
-  mutate(scrt   = SACCADE_COUNT/rts,                               # Saccade Count/RT
+  mutate(scrt   = SACCADE_COUNT/rts,                              # Saccade Count/RT
          mscrt  = mean(scrt),                                     # Mean Saccade Count/RT
-         afdrt  = AVERAGE_FIXATION_DURATION/rts,                   # Average Fixation Duration/RT
+         afdrt  = AVERAGE_FIXATION_DURATION/rts,                  # Average Fixation Duration/RT
          mafdrt = mean(afdrt, na.rm = TRUE),                      # Mean Average Fixation Duration/RT
-         viacrt = VISITED_INTEREST_AREA_COUNT/rts,                 # Visited Interest Area Count/RT
+         viacrt = VISITED_INTEREST_AREA_COUNT/rts,                # Visited Interest Area Count/RT
          miacrt = mean(viacrt)) %>%                               # Mean Visited Interest Area Count/RT
   group_by(sub, rtype) %>%
   mutate(mscrtr = mean(scrt),                                     # Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
@@ -185,36 +178,33 @@ edb <- pd %>%
   group_by(sub, rtype) %>% 
   mutate(mrr = mean(r, na.rm = TRUE))                             # Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
 
-# Z-normalized Data and remove abnormalities
-zd <- edb %>%
+# Centered Data and remove abnormalities
+cd2 <- edb %>%
   ungroup() %>%
   filter(r < 25, scrt > 0) %>%
   select(sub, tcat, rtype, mtut, mscrt, mafdrt, miacrt, mr, mscrtr, mfdrtr, mrr) %>%
   unique() %>%
-  mutate(mtc = (mtut - mean(mtut)),      # Centered Mean TUT Score
-         msc = (mscrt - mean(mscrt)),    # Centered Mean Saccade Count/RT
-         mfc = (mafdrt - mean(mafdrt)),  # Centered Mean Average Fixation Duration/RT 
-         mvc = (miacrt - mean(miacrt)),  # Centered Mean Visited Interest Area Count/RT
-         mrc = (mr - mean(mr)),          # Centered Mean Refixations
-         mscr = (mscrtr - mean(mscrtr)), # Centered Mean Saccade Count/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mfcr = (mfdrtr - mean(mfdrtr)), # Centered Mean Average Fixation Duration/RT for Correct Rejection, False Alarm, Hit, and Miss
-         mrcr = (mrr - mean(mrr)))       # Centered Mean Refixations for Correct Rejection, False Alarm, Hit, and Miss
+  mutate(msc = (mscrt - mean(mscrt)),    # Mean Centered Mean Saccade Count/RT
+         mfc = (mafdrt - mean(mafdrt)),  # Mean Centered Mean Average Fixation Duration/RT 
+         mvc = (miacrt - mean(miacrt)),  # Mean Centered Mean Visited Interest Area Count/RT
+         mrc = (mr - mean(mr)))          # Mean Centered Mean Refixations
 
   # Table 2: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations
-  cm <- zd %>%
+  cm <- cd2 %>%
     select(mscrt, mafdrt, mr) %>%
     unique()
     cor(cm)
 
   # Linear regression for centered mean TUT score, centered mean saccade count/RT, and centered refixations
-  lr <- zd %>%
-    select(mtut, mscrt, mr) %>%
-    unique() %>%
-    lm(mtut ~ mscrt + mr)
-  summary(lr)
+  lr2a <- cd2 %>%
+    select(sub, mtut, msc, mrc) %>%
+    unique()
+
+  lr2b <-lm(mtut ~ msc + mrc, lr2a)
+  summary(lr2b)
 
   # Graph 4a: centered mean saccade count/rt versus centered mean TUT score
-  g4a <- zd %>%
+  g4a <- cd2 %>%
     select(mtut, msc) %>%
     unique()
   cor.test(g4a$mtut, g4a$msc)
@@ -239,7 +229,7 @@ zd <- edb %>%
                                            size   = 22))
   
   # Graph 5a: centered mean refixations versus centered mean TUT score
-  g5a <- zd %>%
+  g5a <- cd2 %>%
     select(mtut, mrc) %>%
     unique()
   cor.test(g5a$mtut, g5a$mrc)
@@ -266,26 +256,26 @@ zd <- edb %>%
   
 # Eye Data: within subject----------------------
 edw <- pd %>%
+  mutate(rts = rt/1000) %>%
   group_by(sub) %>%
-  mutate(scrt   = SACCADE_COUNT/rt,                           # Saccade Count/RT
-         afdrt  = AVERAGE_FIXATION_DURATION/rt) %>%           # Average Fixation Duration/RT
+  mutate(scrt  = SACCADE_COUNT/rts,                           # Saccade Count/RT
+         afdrt = AVERAGE_FIXATION_DURATION/rts) %>%           # Average Fixation Duration/RT
   group_by(sub, tnum) %>%
   mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
 
-# Z-normalized Data and remove abnormalities
-zd2 <- edw %>%
+# Centered Data and remove abnormalities
+cd3 <- edw %>%
  ungroup() %>%
   filter(r < 25, scrt > 0) %>%
   select(sub, tnum, r, scrt, afdrt, tutra2) %>%
   unique() %>%
   group_by(sub) %>%
-  mutate(tc = (tutra2 - mean(tutra2)),                           # Centered TUT Score
-         sc = (scrt - mean(scrt)),                                 # Centered Saccade Count/RT
-         fc = (afdrt - mean(afdrt, na.rm = TRUE)),  # Centered Average Fixation Duration/RT
-         rc = (r - mean(r)))                                          # Centered Refixations
+  mutate(sc = (scrt - mean(scrt)),                  # Mean Centered Saccade Count/RT
+         fc = (afdrt - mean(afdrt, na.rm = TRUE)),  # Mean Centered Average Fixation Duration/RT
+         rc = (r - mean(r)))                        # Mean Centered Refixations
  
   # Table 3: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations 
-  corsub2 <- zd2 %>%
+  c2 <- cd3 %>%
     filter(!sub == "31_lc") %>%
     ungroup() %>%
     group_by(sub) %>%
@@ -293,383 +283,19 @@ zd2 <- edw %>%
     do(tidy(cor.test(~sc + rc, .))) %>% 
     mutate(comp = 'sc_rc')
   
-  bigdf <- bind_rows(corsub1, corsub2, corsub3)
+  bigdf <- bind_rows(c1, c2, c3)
   
-  cor <- bigdf %>%
+  acm <- bigdf %>%
     group_by(comp) %>%
     summarise(cs = mean(estimate),
               ps = mean(p.value))
   
   
+  # Linear mixed-effects model for TUT, centered saccade count/RT, and centered refixations
+  lmem <- lmer(tutra2 ~ sc + rc + (sc + rc|sub), cd3)
+  summary(lmem)
   
-  
-  
-  
-  # Graph: mean saccade count/rt versus mtut by correct rejection, false alarm, hit, and miss
-  ct3b <- edr %>%
-    subset(select = c(sub, mtut, mscrtr, rtype)) %>%
-    unique()
-  
-  ct3cr <- ct3b %>%
-    filter(rtype == "cr")
-  cor.test(ct3cr$mtut, ct3cr$mscrt)
-  
-  ct3fa <- ct3b %>%
-    filter(rtype == "fa")
-  cor.test(ct3fa$mtut, ct3fa$mscrt)
-  
-  ct3h <- ct3b %>%
-    filter(rtype == "hi")
-  cor.test(ct3h$mtut, ct3h$mscrt)
-  
-  ct3m <- ct3b %>%
-    filter(rtype == "mi")
-  cor.test(ct3m$mtut, ct3m$mscrt)
-  
-    # Changing names of rtype
-    levels(ct3b$rtype)[levels(ct3b$rtype)=="cr"] <- "Correct Rejection"
-    levels(ct3b$rtype)[levels(ct3b$rtype)=="fa"] <- "False Alarm"
-    levels(ct3b$rtype)[levels(ct3b$rtype)=="hi"] <- "Hit"
-    levels(ct3b$rtype)[levels(ct3b$rtype)=="mi"] <- "Miss"
-  
-  ggplot(ct3b, aes(mtut, mscrtr))+
-    geom_point(colour = 'dimgrey',
-               size   = 2)+
-    facet_wrap(~rtype)+
-    geom_smooth(colour = "black",
-                method  = "lm",
-                se      = FALSE)+
-    labs(list(x = "Mean TUT Score",
-              y = "Mean Saccade Count\nper Unit Time"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-
-  # Graph: mean average fixation duration/rt
-  ct4a <- ed %>%
-    subset(select = c(sub, mtut, mafdrt)) %>%
-    unique()
-  
-  ggplot(ct4a, aes(mtut, mafdrt))+
-    geom_point(colour = 'dimgrey',
-               size   = 2)+
-    geom_smooth(colour = "black",
-                method  = "lm",
-                se      = FALSE)+
-    labs(list(x = "Mean TUT Score",
-              y = "Mean Average Fixation\nDuration per Unit Time"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-
-  # Graph: mean average fixation duration/rt versus mtut by correct rejection, false alarm, hit, and miss
-  ct4b <- edr %>%
-    subset(select = c(sub, mtut, mfrtr, rtype)) %>%
-    unique()
-  
-  ct4cr <- ct4b %>%
-    filter(rtype == "cr")
-  cor.test(ct4cr$mtut, ct4cr$mfrtr)
-  
-  ct4fa <- ct4b %>%
-    filter(rtype == "fa")
-  cor.test(ct4fa$mtut, ct4fa$mfrtr)
-  
-  ct4h <- ct4b %>%
-    filter(rtype == "hi")
-  cor.test(ct4h$mtut, ct4h$mfrtr)
-  
-  ct4m <- ct4b %>%
-    filter(rtype == "mi")
-  cor.test(ct4m$mtut, ct4m$mfrtr)
-
-    # Changing names of rtype
-    levels(ct4b$rtype)[levels(ct4b$rtype)=="cr"] <- "Correct Rejection"
-    levels(ct4b$rtype)[levels(ct4b$rtype)=="fa"] <- "False Alarm"
-    levels(ct4b$rtype)[levels(ct4b$rtype)=="hi"] <- "Hit"
-    levels(ct4b$rtype)[levels(ct4b$rtype)=="mi"] <- "Miss"
-  
-  ggplot(ct4b, aes(mtut, mfrtr))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    facet_wrap(~rtype)+
-    geom_smooth(colour = "black",
-                method = "lm", 
-                se = FALSE)+
-    labs(list(x = "Mean TUT Score",
-              y = "Mean Average Fixation\nDuration per Unit Time"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-
-  # Graph: mean visited interest area count/rt v mean TUT
-  ct5 <- ed2 %>%
-    subset(select = c(sub, mtut, miacrt)) %>%
-    unique()
-  cor.test(ct5$mtut, ct5$miacrt)
-  
-  ggplot(ct5, aes(mtut, miacrt))+
-    geom_point(colour = "dimgrey",
-               size = 2)+
-    geom_smooth(colour = "black",
-                method = "lm",
-                se = FALSE)+
-    labs(list(x = "Mean TUT Score", 
-              y = "Mean Visited Interest Area\nCount per Unit Time"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-
-# Graph: mean interest area count v mean average fixation duration per unit time
-ct6 <- ed2 %>%
-  subset(select = c(sub, mafdrt, miarc)) %>%
-  unique()
-cor.test(ct6$mafdrt, ct6$miarc)
-
-ggplot(ct6, aes(mafdrt, miarc))+
-  geom_point(colour = "dimgrey",
-             size = 2)+
-  geom_smooth(colour = "black",
-              method = "lm",
-              se = FALSE)+
-  labs(list(x = "Mean Average Fixation Duration Per Unit Time", 
-            y = "Mean Interest Area Run Count"))+
-  theme(axis.title.x      = element_text(vjust = -0.2),
-        axis.title.y      = element_text(vjust = 1.2),
-        legend.text       = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22),
-        panel.background  = element_rect(fill = "white"),
-        panel.grid.major  = element_line(colour = "white"),
-        panel.grid.minor  = element_line(colour = "white"),
-        text              = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22))
-
-  
-
-  # Graph: mean IA run count-trial total visited IA count versus mtut by correct rejection, false alarm, hit, and miss
-  ct5b <- ed4r %>%
-    subset(select = c(sub, mtut, mrr, rtype)) %>%
-    unique()
-
-  ct5cr <- ct5b %>%
-    filter(rtype == "cr")
-  cor.test(ct5cr$mtut, ct5cr$mrr)
-  
-  ct5fa <- ct5b %>%
-    filter(rtype == "fa")
-  cor.test(ct5fa$mtut, ct5fa$mrr)
-  
-  ct5h <- ct5b %>%
-    filter(rtype == "hi")
-  cor.test(ct5h$mtut, ct5h$mrr)
-  
-  ct5m <- ct5b %>%
-    filter(rtype == "mi")
-  cor.test(ct5m$mtut, ct5m$mrr)
-  
-    # Changing names of rtype
-    levels(ct5b$rtype)[levels(ct5b$rtype)=="cr"] <- "Correct Rejection"
-    levels(ct5b$rtype)[levels(ct5b$rtype)=="fa"] <- "False Alarm"
-    levels(ct5b$rtype)[levels(ct5b$rtype)=="hi"] <- "Hit"
-    levels(ct5b$rtype)[levels(ct5b$rtype)=="mi"] <- "Miss"
-  
-  ggplot(ct5b, aes(mtut, mrr))+
-    geom_point(colour = "dimgrey",
-               size = 2)+
-    facet_wrap(~rtype)+
-    geom_smooth(colour = "black",
-                method = "lm",
-                se = FALSE)+
-    labs(list(x = "Mean TUT Score", 
-              y = "Mean Refixations"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-
-
-# Linear Model
-lm <- ed4 %>%
-  ungroup() %>%
-  filter(r< 25, scrt > 0) %>%
-  select(sub, mscrt, mafdrt, mtut, mr) %>%
-  unique() %>%
-  mutate(tc = (mtut - mean(mtut))/sd(mtut),
-         sc = (mscrt - mean(mscrt))/sd(mscrt),
-         fc = (mafdrt - mean(mafdrt, na.rm = TRUE))/sd(mafdrt, na.rm = TRUE),
-         rc = (mr - mean(mr))/sd(mr))
-
-cor(select(lm, mr, mscrt, mafdrt, mtut))
-#cor.test(~ mscrt + mafdrt, new)
-
-sr <- lm(tc ~ rc + sc, lm)
-summary(sr)
-
-lmr <- ed4r %>%
-  ungroup() %>%
-  filter(r< 25, scrtr > 0) %>%
-  select(sub, mscrtr, mfrtr, mtut, mrr, rtype) %>%
-  unique() %>%
-  mutate(tc = (mtut - mean(mtut))/sd(mtut),
-         sc = (mscrtr - mean(mscrtr))/sd(mscrtr),
-         fc = (mfrtr - mean(mfrtr, na.rm = TRUE))/sd(mfrtr, na.rm = TRUE),
-         rc = (mrr - mean(mrr))/sd(mrr))
-
-srr <- lm(tc ~ rc*rtype + sc*rtype, lmr)
-summary(srr)
-
-ggplot(lm, aes(tc, sc))+
-  geom_point(colour = 'dimgrey',
-             size   = 2)+
-  geom_smooth(colour = "black",
-              method  = "lm",
-              se      = FALSE)+
-  labs(list(x = "Mean TUT Score",
-            y = "Mean Saccade Count"))+
-  theme(axis.title.x      = element_text(vjust = -0.2),
-        axis.title.y      = element_text(vjust = 1.2),
-        legend.text       = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22),
-        panel.background  = element_rect(fill = "white"),
-        panel.grid.major  = element_line(colour = "white"),
-        panel.grid.minor  = element_line(colour = "white"),
-        text              = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22))
-
-ggplot(lmr, aes(tc, sc))+
-  geom_point(colour = 'dimgrey',
-             size   = 2)+
-  facet_wrap(~rtype)+
-  geom_smooth(colour = "black",
-              method  = "lm",
-              se      = FALSE)+
-  labs(list(x = "Mean TUT Score",
-            y = "Mean Saccade Count"))+
-  theme(axis.title.x      = element_text(vjust = -0.2),
-        axis.title.y      = element_text(vjust = 1.2),
-        legend.text       = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22),
-        panel.background  = element_rect(fill = "white"),
-        panel.grid.major  = element_line(colour = "white"),
-        panel.grid.minor  = element_line(colour = "white"),
-        text              = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22))
-  
-# Linear Mixed-Effects Model
-lmem <- ed4 %>%
-  ungroup() %>%
-  filter(r < 25, scrt > 0) %>%
-  select(sub, tnum, r, scrt, afdrt, tutra2) %>%
-  unique() %>%
-  group_by(sub) %>%
-  mutate(rc = (r - mean(r))/sd(r),
-         sc = (scrt - mean(scrt))/sd(scrt),
-         fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
-         tc = (tutra2 - mean(tutra2))/sd(tutra2))
-
-
-  
-  
- # mean r values or look at distribution on a plot 
-all <- lmer(tc ~ sc + fc + rc + (sc + fc + rc|sub), lmem)
-summary(all)
-  
-lmemr <- ed4r %>%
-  ungroup() %>%
-  filter(r < 25, scrt > 0) %>%
-  select(sub, tnum, r, scrt, afdrt, tutra2, rtype) %>%
-  unique() %>%
-  group_by(sub) %>%
-  mutate(rc = (r - mean(r))/sd(r),
-         sc = (scrt - mean(scrt))/sd(scrt),
-         fc = (afdrt - mean(afdrt, na.rm = TRUE))/sd(afdrt, na.rm = TRUE),
-         tc = (tutra2 - mean(tutra2))/sd(tutra2))
-
-allr <- lmer(tc ~ sc*rtype + fc*rtype + rc*rtype + (sc*rtype + fc*rtype + rc*rtype|sub), lmemr)
-summary(allr)
-
-anova(rc, scrc)
-
-cc <- ed4 %>%
-  select(sub, tcat, hirate, crrate, farate, mirate) %>%
-  unique()
-
-ggplot(cc, aes(tcat, crrate))+
-  geom_boxplot(colour = "dimgrey")+
-  labs(list(x = "Category",
-            y = "Correct Rejection Rate"))+
-  theme(axis.title.x      = element_text(vjust = -0.2),
-        axis.title.y      = element_text(vjust = 1.2),
-        legend.text       = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22),
-        panel.background  = element_rect(fill = "white"),
-        panel.grid.major  = element_line(colour = "white"),
-        panel.grid.minor  = element_line(colour = "white"),
-        text              = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22))
-
-ggplot(cc, aes(tcat, hirate))+
-  geom_boxplot(colour = "dimgrey")+
-  labs(list(x = "Category",
-            y = "Hit Rate"))+
-  theme(axis.title.x      = element_text(vjust = -0.2),
-        axis.title.y      = element_text(vjust = 1.2),
-        legend.text       = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22),
-        panel.background  = element_rect(fill = "white"),
-        panel.grid.major  = element_line(colour = "white"),
-        panel.grid.minor  = element_line(colour = "white"),
-        text              = element_text(face   = "bold",
-                                         family = "Times New Roman",
-                                         size   = 22))
-
-
+# put in both mean centered; why are we doing this?
+# mean tut score v rt + rt linear regression model (add whole model results in)
+# saccade amplitude 
 # Look at why saccades are now positively correlated with mean TUT and see if refixations occured earlier or later in the trials
