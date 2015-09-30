@@ -56,7 +56,7 @@ pd <- df3 %>%
   mutate(mrtr  = mean(rt),                                                        # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
          mtutr = mean(tutra2))                                                    # Mean TUT for Correct Rejection, False Alarm, Hit, and Miss
 
-
+        
 # Centered Data
 cd <- pd %>%
   ungroup() %>%
@@ -160,34 +160,23 @@ cd <- pd %>%
   
 # Eye Data: between subjects----------------------
 edb <- pd %>%
-  mutate(rts = rt/1000) %>%
   group_by(sub) %>%
-  mutate(scrt   = SACCADE_COUNT/rts,                              # Saccade Count/RT
-         mscrt  = mean(scrt),                                     # Mean Saccade Count/RT
-         afdrt  = AVERAGE_FIXATION_DURATION/rts,                  # Average Fixation Duration/RT
-         mafdrt = mean(afdrt, na.rm = TRUE),                      # Mean Average Fixation Duration/RT
-         viacrt = VISITED_INTEREST_AREA_COUNT/rts,                # Visited Interest Area Count/RT
-         miacrt = mean(viacrt)) %>%                               # Mean Visited Interest Area Count/RT
+  mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
+         mafd = mean(AVERAGE_FIXATION_DURATION, na.rm = TRUE),    # Mean Average Fixation Duration
+         miac = mean(VISITED_INTEREST_AREA_COUNT)) %>%            # Mean Visited Interest Area Count
   group_by(sub, tnum) %>%
   mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT) %>%  # IA Run Count-Trial Total Visited IA Count
   group_by(sub) %>%
   mutate(mr = mean(r, na.rm = TRUE))                              # Mean Refixations
 
-# Centered Data and remove abnormalities
-cd2 <- edb %>%
-  ungroup() %>%
-  filter(r < 25, scrt > 0) %>%
-  select(sub, tcat, rtype, mtut, mscrt, mafdrt, miacrt, mr) %>%
-  unique() %>%
-  mutate(msc = (mscrt - mean(mscrt)),    # Mean Centered Mean Saccade Count/RT
-         mfc = (mafdrt - mean(mafdrt)),  # Mean Centered Mean Average Fixation Duration/RT 
-         mvc = (miacrt - mean(miacrt)))  # Mean Centered Mean Visited Interest Area Count/RT
-
   # Table 2: correlation matrix of centered mean TUT score, centered mean saccade count/RT, cenetered mean average fixation druation/RT, and centered mean refixations
-  cm <- cd2 %>%
-    select(mscrt, mafdrt, mr) %>%
+  cm <- edb %>%
+    ungroup() %>%
+    filter(r < 25) %>%
+    select(mtut, msc, mafd, miac, mr) %>%
     unique()
     cor(cm)
+    cor.test(cm$miac, cm$mr)
 
   # Linear regression for centered mean TUT score, centered mean saccade count/RT, and refixations
   lr2a <- cd2 %>%
@@ -312,3 +301,11 @@ dfn2 <- tdn %>%
                           fromLast  = TRUE,
                           na.rm     = FALSE)) %>%
   filter(!is.na(tutra2))
+
+# See Unique Refixations
+dfn3 <- dfn2 %>%
+  select(sub, tutra2, tcat, IA_LABEL, IA_RUN_COUNT) %>%
+  filter(IA_RUN_COUNT > 1) %>%
+  group_by(sub) %>%
+  count(sub, tcat, IA_LABEL) %>%
+  filter(IA_LABEL == "fixation")
