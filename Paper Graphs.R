@@ -7,6 +7,7 @@ library(grid)
 library(lme4)
 library(tidyr)
 library(zoo)
+library(lmerTest)
 
 # Import fonts
 loadfonts(device="win")
@@ -56,6 +57,13 @@ pd <- df3 %>%
   mutate(mrtr  = mean(rt),                                                        # Mean Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
          mtutr = mean(tutra2))                                                    # Mean TUT for Correct Rejection, False Alarm, Hit, and Miss
 
+  # Centered Data
+  cd <- pd %>%
+    ungroup() %>%
+    select(sub, rtype, mrtr, mtutr) %>%
+    unique() %>%
+    mutate(mcrtr = mrtr - mean(mrtr)) # Mean Centered Reaction Time for Correct Rejection, False Alarm, Hit, and Miss
+           
   # Table 1: number of participants with rtype for tut level
   t <- pd %>%
     group_by(sub) %>%
@@ -118,37 +126,11 @@ pd <- df3 %>%
                                            family = "Times New Roman",
                                            size   = 22))
   
-  # Linear regression for mean TUT score and mean RT by correct rejection, false alarm, hit, and miss
-  lr <- lm(mtutr ~ mrtr * rtype, cd)
+  # Linear regression for mean TUT score and mean centered RT by correct rejection, false alarm, hit, and miss
+  lr <- lm(mtutr ~ mcrtr * rtype, cd)
   summary(lr)
   
-  # Graph 3: mean RT versus mean TUT score
-  g3 <- cd %>%
-    select(sub, mtut, mrt) %>%
-    unique()
-  cor.test(g3$mtut, g3$mrt)
-  
-  ggplot(g3, aes(mtut, mrt))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    geom_smooth(colour  = "black",
-                method  = "lm")+
-    labs(list(x = "Mean TUT Score",
-              y = "Mean Reaction Time"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
 
-  
 # Eye Data: between subjects----------------------
 edb <- pd %>%
   group_by(sub) %>%
@@ -160,7 +142,7 @@ edb <- pd %>%
   group_by(sub) %>%
   mutate(mr = mean(r, na.rm = TRUE))                              # Mean Refixations
 
-  # Table 2: correlation matrix of  mean TUT score, mean saccade count, mean average fixation druation, mean visited interest area count, and mean refixations
+  # Table 2: correlation matrix of  mean TUT score, mean centered saccade count, mean centered average fixation druation, mean centered visited interest area count, and mean centered refixations
   cm <- edb %>%
     ungroup() %>%
     filter(r < 25) %>%
@@ -169,57 +151,7 @@ edb <- pd %>%
     cor(cm)
     cor.test(cm$miac, cm$mr)
 
-  # Graph 4a: mean saccade count versus mean TUT score
-  g4a <- cd2 %>%
-    select(mtut, msc) %>%
-    unique()
-  cor.test(g4a$mtut, g4a$msc)
-  
-  ggplot(g4a, aes(mtut, msc))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    geom_smooth(colour = "black",
-                method  = "lm")+
-    labs(list(x = "Mean TUT Score",
-              y = "Mean Saccade Count\nper Unit Time"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
-  # Graph 5a: mean refixations versus mean TUT score
-  g5a <- cd2 %>%
-    select(mtut, mr) %>%
-    unique()
-  cor.test(g5a$mtut, g5a$mr)
-  
-  ggplot(g5a, aes(mtut, mr))+
-    geom_point(colour = "dimgrey",
-               size = 2)+
-    geom_smooth(colour = "black",
-                method = "lm",
-                se = FALSE)+
-    labs(list(x = "Mean TUT Score", 
-              y = "Mean Refixations"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
+    
 # Eye Data: within subject----------------------
 edw <- pd %>%
   group_by(sub) %>%
@@ -228,26 +160,30 @@ edw <- pd %>%
   group_by(sub, tnum) %>%
   mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
 
-# Remove abnormalities
-cd3 <- edw %>%
+# Centered Data and Remove Abnormalities
+cd2 <- edw %>%
  ungroup() %>%
   filter(r < 25, sc > 0) %>%
   select(sub, tnum, rt, sc, viac, r, tutra2) %>%
-  unique()
+  unique() %>%
+  group_by(sub) %>%
+  mutate(mcrt   = rt - mean(rt),     # Mean Centered Reaction Time
+         mcsc   = sc - mean(sc),     # Mean Centered Saccade Count
+         mcviac = viac - mean(viac), # Mean Centered Visited Interest Area Count
+         mcr    = r - mean(r))       # Mean Centered Refixations
 
   # Linear mixed-effects model for TUT, RT, centered saccade count, visited interest area count, and refixations
-  lmem <- lmer(tutra2 ~ rt + (rt|sub), cd3)
+  lmem <- lmer(tutra2 ~ mcrt + (mcrt|sub), cd2)
   summary(lmem)
 
-  lmem <- lmer(tutra2 ~ sc + (sc|sub), cd3)
-  summary(lmem)
+  lmem2 <- lmer(tutra2 ~ mcsc + (mcsc|sub), cd2)
+  summary(lmem2)
   
-  lmem <- lmer(tutra2 ~ viac + (viac|sub), cd3)
-  summary(lmem)
+  lmem3 <- lmer(tutra2 ~ mcviac + (mcviac|sub), cd2)
+  summary(lmem3)
   
-  lmem <- lmer(tutra2 ~ r + (r|sub), cd3)
-  summary(lmem)
-  
+  lmem4 <- lmer(tutra2 ~ mcr + (mcr|sub), cd2)
+  summary(lmem4)
 
 # New IA Report----------
 dfn <- read.delim('IA_report_8102015.txt', na.strings = c(" ", ".", "NA", ""))
