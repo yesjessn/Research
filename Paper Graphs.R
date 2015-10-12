@@ -133,57 +133,258 @@ pd <- df3 %>%
 
 # Eye Data: between subjects----------------------
 edb <- pd %>%
+  group_by(sub, tnum) %>%
+  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT) %>%  # IA Run Count-Trial Total Visited IA Count
+  filter(r < 25, rtype == "cr") %>%
+  ungroup() %>%
   group_by(sub) %>%
   mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
          mafd = mean(AVERAGE_FIXATION_DURATION, na.rm = TRUE),    # Mean Average Fixation Duration
-         miac = mean(VISITED_INTEREST_AREA_COUNT)) %>%            # Mean Visited Interest Area Count
-  group_by(sub, tnum) %>%
-  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT) %>%  # IA Run Count-Trial Total Visited IA Count
-  group_by(sub) %>%
+         mviac = mean(VISITED_INTEREST_AREA_COUNT)) %>%           # Mean Visited Interest Area Count
   mutate(mr = mean(r, na.rm = TRUE))                              # Mean Refixations
-
-  # Table 2: correlation matrix of  mean TUT score, mean centered saccade count, mean centered average fixation druation, mean centered visited interest area count, and mean centered refixations
-  cm <- edb %>%
+  
+  # Centered Data
+  cd2 <- edb %>%
     ungroup() %>%
-    filter(r < 25) %>%
-    select(mtut, msc, mafd, miac, mr) %>%
+    select(mtut, msc, mafd, mviac, mr) %>%
+    unique() %>%
+    mutate(mcmsc  = msc - mean(msc),      # Mean Centered Mean Saccade Count
+           mcmafd = mafd - mean(mafd),    # Mean Centered Mean Average Fixation Duration
+           mcmiac = mviac - mean(mviac),  # Mean Centered Mean Visited Interest Area Count
+           mcmr   = mr - mean(mr))        # Mean Centered Mean Refixations
+  
+  # Table 2: correlation matrix of  mean TUT score, mean centered saccade count, mean centered average fixation druation, mean centered visited interest area count, and mean centered refixations
+  cm <- cd2 %>%
+    select(mtut, mcmsc, mcmafd, mcmiac, mcmr) %>%
     unique()
-    cor(cm)
-    cor.test(cm$miac, cm$mr)
+  cor(cm)
+  cor.test(cm$mcmafd, cm$mtut)
 
+  # Table 3: linear regression of mean TUT score, mean centered fixation duration, and mean centered visited interest area count
+  lm <- lm(mtut ~ mcmafd + mcmiac, cm)
+  summary(lm)
+  
+  # Graphs
+  ggplot(cd2, aes(mtut, msc))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean TUT Score",
+              y = "Mean Saccade Count"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(mtut, mafd))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean TUT Score",
+              y = "Mean Average Fixation Duration"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  ggplot(cd2, aes(mtut, mr))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean TUT Score",
+              y = "Mean Refixations"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(msc, mafd))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean Saccade Count",
+              y = "Mean Average Fixation Duration"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(msc, mviac))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean Saccade Count",
+              y = "Mean Visited\nInterest Area Count"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(msc, mr))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean Saccade Count",
+              y = "Mean Refixations"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(mafd, mviac))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean Average Fixation Duration",
+              y = "Mean Visited\nInterest Area Count"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(mafd, mr))+
+    geom_point(colour = "dimgrey",
+               size   = 2)+
+    geom_smooth(colour  = "black",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean Average Fixation Duration",
+              y = "Mean Regressions"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "Times New Roman",
+                                           size   = 22))
+  
+  ggplot(cd2, aes(mviac, mr))+
+      geom_point(colour = "dimgrey",
+                 size   = 2)+
+      geom_smooth(colour  = "black",
+                  method  = "lm",
+                  se      = FALSE)+
+      labs(list(x = "Mean Visited Interest Area",
+                y = "Mean Refixations"))+
+      theme(axis.title.x      = element_text(vjust = -0.2),
+            axis.title.y      = element_text(vjust = 1.2),
+            legend.text       = element_text(face   = "bold",
+                                             family = "Times New Roman",
+                                             size   = 22),
+            panel.background  = element_rect(fill = "white"),
+            panel.grid.major  = element_line(colour = "white"),
+            panel.grid.minor  = element_line(colour = "white"),
+            text              = element_text(face   = "bold",
+                                             family = "Times New Roman",
+                                             size   = 22))
+    
     
 # Eye Data: within subject----------------------
 edw <- pd %>%
   group_by(sub) %>%
   mutate(sc   = SACCADE_COUNT,                                # Saccade Count
+         afd  = AVERAGE_FIXATION_DURATION,                    # Average Fixation Duration
          viac = VISITED_INTEREST_AREA_COUNT) %>%              # Visited Interest Area Count
   group_by(sub, tnum) %>%
   mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
 
 # Centered Data and Remove Abnormalities
-cd2 <- edw %>%
+cd3 <- edw %>%
  ungroup() %>%
-  filter(r < 25, sc > 0) %>%
-  select(sub, tnum, rt, sc, viac, r, tutra2) %>%
+  filter(r < 25, sc > 0, !afd == "NA") %>%
+  select(sub, tnum, rt, sc, afd, viac, r, tutra2) %>%
   unique() %>%
   group_by(sub) %>%
   mutate(mcrt   = rt - mean(rt),     # Mean Centered Reaction Time
+         mcafd  = afd - mean(afd),   # Mean Centered Average Fixation Duration
          mcsc   = sc - mean(sc),     # Mean Centered Saccade Count
          mcviac = viac - mean(viac), # Mean Centered Visited Interest Area Count
          mcr    = r - mean(r))       # Mean Centered Refixations
 
-  # Linear mixed-effects model for TUT, RT, centered saccade count, visited interest area count, and refixations
-  lmem <- lmer(tutra2 ~ mcrt + (mcrt|sub), cd2)
+  # Linear mixed-effects model for TUT, RT, mean centered saccade count, mean centered average fixation duration, mean centered visited interest area count, and mean centered refixations
+  lmem <- lmer(tutra2 ~ mcrt + (mcrt|sub), cd3)
   summary(lmem)
 
-  lmem2 <- lmer(tutra2 ~ mcsc + (mcsc|sub), cd2)
+  lmem2 <- lmer(tutra2 ~ mcsc + (mcsc|sub), cd3)
   summary(lmem2)
   
-  lmem3 <- lmer(tutra2 ~ mcviac + (mcviac|sub), cd2)
+  lmem3 <- lmer(tutra2 ~ mcviac + mcafd + (mcviac + mcafd|sub), cd3)
   summary(lmem3)
   
-  lmem4 <- lmer(tutra2 ~ mcr + (mcr|sub), cd2)
+  lmem4 <- lmer(tutra2 ~ mcr + (mcr|sub), cd3)
   summary(lmem4)
+  
+  lmem5 <- lmer(tutra2 ~ mcrt + mcsc + mcviac + mcr +(mcrt + mcsc + mcviac + mcr|sub), cd3)
+  summary(lmem5)
+  
+  lmem6 <- lmer(tutra2 ~ mcsc + mcafd + mcviac + mcr +(mcsc + mcafd + mcviac + mcr|sub), cd3)
+  summary(lmem6)
 
 # New IA Report----------
 dfn <- read.delim('IA_report_8102015.txt', na.strings = c(" ", ".", "NA", ""))
