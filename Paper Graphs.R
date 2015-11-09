@@ -81,13 +81,14 @@ pd <- df3 %>%
 
   # Graph 1: number of subjects with mean tut level
   g <- pd %>%
+    ungroup() %>%
     select(sub, mtut) %>%
     unique()
 
   ggplot(g, aes(mtut))+
     geom_histogram(breaks = c(0, 1, 2, 3, 4, 5),
-                   colour = "dimgrey",
-                   fill   = "black")+
+                   colour = "white",
+                   fill   = "#00003C")+
     labs(list(x = "Mean TUT Score",
               y = "Number of Participants"))+
     theme(axis.title.x      = element_text(vjust = -0.2),
@@ -96,8 +97,8 @@ pd <- df3 %>%
           panel.grid.major  = element_line(colour = "white"),
           panel.grid.minor  = element_line(colour = "white"),
           text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
+                                           family = "IrisUPC",
+                                           size   = 29))
 
   # Graph 2: dprime versus mean TUT and remove subject 12_sw because of 0 false alarm rate
   g2 <- pd %>%
@@ -107,9 +108,9 @@ pd <- df3 %>%
   cor.test(g2$mtut, g2$dp)
   
   ggplot(g2, aes(mtut, dp))+
-    geom_point(colour = "dimgrey",
+    geom_point(colour = "#00003C",
                size   = 2)+
-    geom_smooth(colour  = "black",
+    geom_smooth(colour  = "#00003C",
                 method  = "lm",
                 se      = FALSE)+
     labs(list(x = "Mean TUT Score",
@@ -117,25 +118,72 @@ pd <- df3 %>%
     theme(axis.title.x      = element_text(vjust = -0.2),
           axis.title.y      = element_text(vjust = 1.2),
           legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
+                                           family = "IrisUPC",
+                                           size   = 29),
           panel.background  = element_rect(fill = "white"),
           panel.grid.major  = element_line(colour = "white"),
           panel.grid.minor  = element_line(colour = "white"),
           text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
+                                           family = "IrisUPC",
+                                           size   = 29))
   
   # Linear regression for mean TUT score and mean centered RT by correct rejection, false alarm, hit, and miss
   lr <- lm(mtutr ~ mcrtr * rtype, cd)
   summary(lr)
   
+  # Miscellaneous Graph: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
+  mg <- pd %>%
+    select(sub, mtutr, mrtr, rtype) %>%
+    unique()
+  
+  mgcr <- mg %>%
+    filter(rtype == "cr")
+  cor.test(mgcr$mtut, mgcr$mrt)
+  
+  mgfa <- mg %>%
+    filter(rtype == "fa")
+  cor.test(mgfa$mtut, mgfa$mrt)
+  
+  mgh <- mg %>%
+    filter(rtype == "hi")
+  cor.test(mgh$mtut, mgh$mrt)
+  
+  mgm <- mg %>%
+    filter(rtype == "mi")
+  cor.test(mgm$mtut, mgm$mrt)
+  
+  # Changing names of rtype
+  levels(mg$rtype)[levels(mg$rtype)=="cr"] <- "Correct Rejection"
+  levels(mg$rtype)[levels(mg$rtype)=="fa"] <- "False Alarm"
+  levels(mg$rtype)[levels(mg$rtype)=="hi"] <- "Hit"
+  levels(mg$rtype)[levels(mg$rtype)=="mi"] <- "Miss"
+  
+  ggplot(mg, aes(mtutr, mrtr))+
+    geom_point(colour = "#00003C",
+               size   = 2)+
+    facet_wrap(~rtype)+
+    geom_smooth(colour  = "#00003C",
+                method  = "lm",
+                se      = FALSE)+
+    labs(list(x = "Mean TUT Score",
+              y = "Mean Reaction Time (ms)"))+
+    theme(axis.title.x      = element_text(vjust = -0.2),
+          axis.title.y      = element_text(vjust = 1.2),
+          legend.text       = element_text(face   = "bold",
+                                           family = "IrisUPC",
+                                           size   = 29),
+          panel.background  = element_rect(fill = "white"),
+          panel.grid.major  = element_line(colour = "white"),
+          panel.grid.minor  = element_line(colour = "white"),
+          text              = element_text(face   = "bold",
+                                           family = "IrisUPC",
+                                           size   = 29))
 
 # Eye Data: between subjects----------------------
 edb <- pd %>%
   group_by(sub, tnum) %>%
   mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT) %>%  # IA Run Count-Trial Total Visited IA Count
-  filter(r < 25, rtype == "cr") %>%
+  filter(r < 25) %>%
   ungroup() %>%
   group_by(sub) %>%
   mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
@@ -166,9 +214,9 @@ edb <- pd %>%
   
   # Graphs
   ggplot(cd2, aes(mtut, msc))+
-    geom_point(colour = "dimgrey",
+    geom_point(colour = "#00003C",
                size   = 2)+
-    geom_smooth(colour  = "black",
+    geom_smooth(colour  = "#00003C",
                 method  = "lm",
                 se      = FALSE)+
     labs(list(x = "Mean TUT Score",
@@ -176,38 +224,38 @@ edb <- pd %>%
     theme(axis.title.x      = element_text(vjust = -0.2),
           axis.title.y      = element_text(vjust = 1.2),
           legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
+                                           family = "IrisUPC",
+                                           size   = 29),
           panel.background  = element_rect(fill = "white"),
           panel.grid.major  = element_line(colour = "white"),
           panel.grid.minor  = element_line(colour = "white"),
           text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
+                                           family = "IrisUPC",
+                                           size   = 29))
   
   ggplot(cd2, aes(mtut, mafd))+
-    geom_point(colour = "dimgrey",
+    geom_point(colour = "#00003C",
                size   = 2)+
-    geom_smooth(colour  = "black",
+    geom_smooth(colour  = "#00003C",
                 method  = "lm",
                 se      = FALSE)+
     labs(list(x = "Mean TUT Score",
-              y = "Mean Average Fixation Duration"))+
+              y = "Mean Average Fixation Duration (ms)"))+
     theme(axis.title.x      = element_text(vjust = -0.2),
           axis.title.y      = element_text(vjust = 1.2),
           legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
+                                           family = "IrisUPC",
+                                           size   = 29),
           panel.background  = element_rect(fill = "white"),
           panel.grid.major  = element_line(colour = "white"),
           panel.grid.minor  = element_line(colour = "white"),
           text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
+                                           family = "IrisUPC",
+                                           size   = 29))
   ggplot(cd2, aes(mtut, mr))+
-    geom_point(colour = "dimgrey",
+    geom_point(colour = "#00003C",
                size   = 2)+
-    geom_smooth(colour  = "black",
+    geom_smooth(colour  = "#00003C",
                 method  = "lm",
                 se      = FALSE)+
     labs(list(x = "Mean TUT Score",
@@ -215,136 +263,36 @@ edb <- pd %>%
     theme(axis.title.x      = element_text(vjust = -0.2),
           axis.title.y      = element_text(vjust = 1.2),
           legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
+                                           family = "IrisUPC",
+                                           size   = 29),
           panel.background  = element_rect(fill = "white"),
           panel.grid.major  = element_line(colour = "white"),
           panel.grid.minor  = element_line(colour = "white"),
           text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
+                                           family = "IrisUPC",
+                                           size   = 29))
   
-  ggplot(cd2, aes(msc, mafd))+
-    geom_point(colour = "dimgrey",
+  ggplot(cd2, aes(mtut, mviac))+
+    geom_point(colour = "#00003C",
                size   = 2)+
-    geom_smooth(colour  = "black",
+    geom_smooth(colour  = "#00003C",
                 method  = "lm",
                 se      = FALSE)+
-    labs(list(x = "Mean Saccade Count",
-              y = "Mean Average Fixation Duration"))+
+    labs(list(x = "Mean TUT Score",
+              y = "Mean Visited Interest Area Count"))+
     theme(axis.title.x      = element_text(vjust = -0.2),
           axis.title.y      = element_text(vjust = 1.2),
           legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
+                                           family = "IrisUPC",
+                                           size   = 29),
           panel.background  = element_rect(fill = "white"),
           panel.grid.major  = element_line(colour = "white"),
           panel.grid.minor  = element_line(colour = "white"),
           text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
-  ggplot(cd2, aes(msc, mviac))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    geom_smooth(colour  = "black",
-                method  = "lm",
-                se      = FALSE)+
-    labs(list(x = "Mean Saccade Count",
-              y = "Mean Visited\nInterest Area Count"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
-  ggplot(cd2, aes(msc, mr))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    geom_smooth(colour  = "black",
-                method  = "lm",
-                se      = FALSE)+
-    labs(list(x = "Mean Saccade Count",
-              y = "Mean Refixations"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
-  ggplot(cd2, aes(mafd, mviac))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    geom_smooth(colour  = "black",
-                method  = "lm",
-                se      = FALSE)+
-    labs(list(x = "Mean Average Fixation Duration",
-              y = "Mean Visited\nInterest Area Count"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
-  ggplot(cd2, aes(mafd, mr))+
-    geom_point(colour = "dimgrey",
-               size   = 2)+
-    geom_smooth(colour  = "black",
-                method  = "lm",
-                se      = FALSE)+
-    labs(list(x = "Mean Average Fixation Duration",
-              y = "Mean Regressions"))+
-    theme(axis.title.x      = element_text(vjust = -0.2),
-          axis.title.y      = element_text(vjust = 1.2),
-          legend.text       = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22),
-          panel.background  = element_rect(fill = "white"),
-          panel.grid.major  = element_line(colour = "white"),
-          panel.grid.minor  = element_line(colour = "white"),
-          text              = element_text(face   = "bold",
-                                           family = "Times New Roman",
-                                           size   = 22))
-  
-  ggplot(cd2, aes(mviac, mr))+
-      geom_point(colour = "dimgrey",
-                 size   = 2)+
-      geom_smooth(colour  = "black",
-                  method  = "lm",
-                  se      = FALSE)+
-      labs(list(x = "Mean Visited Interest Area",
-                y = "Mean Refixations"))+
-      theme(axis.title.x      = element_text(vjust = -0.2),
-            axis.title.y      = element_text(vjust = 1.2),
-            legend.text       = element_text(face   = "bold",
-                                             family = "Times New Roman",
-                                             size   = 22),
-            panel.background  = element_rect(fill = "white"),
-            panel.grid.major  = element_line(colour = "white"),
-            panel.grid.minor  = element_line(colour = "white"),
-            text              = element_text(face   = "bold",
-                                             family = "Times New Roman",
-                                             size   = 22))
+                                           family = "IrisUPC",
+                                           size   = 29))
     
-    
+  
 # Eye Data: within subject----------------------
 edw <- pd %>%
   group_by(sub) %>%
@@ -374,17 +322,15 @@ cd3 <- edw %>%
   lmem2 <- lmer(tutra2 ~ mcsc + (mcsc|sub), cd3)
   summary(lmem2)
   
-  lmem3 <- lmer(tutra2 ~ mcviac + mcafd + (mcviac + mcafd|sub), cd3)
+  lmem <- lmer(tutra2 ~ mcafd + (mcafd|sub), cd3)
+  summary(lmem)
+  
+  lmem3 <- lmer(tutra2 ~ mcviac + (mcviac|sub), cd3)
   summary(lmem3)
   
   lmem4 <- lmer(tutra2 ~ mcr + (mcr|sub), cd3)
   summary(lmem4)
-  
-  lmem5 <- lmer(tutra2 ~ mcrt + mcsc + mcviac + mcr +(mcrt + mcsc + mcviac + mcr|sub), cd3)
-  summary(lmem5)
-  
-  lmem6 <- lmer(tutra2 ~ mcsc + mcafd + mcviac + mcr +(mcsc + mcafd + mcviac + mcr|sub), cd3)
-  summary(lmem6)
+
 
 # New IA Report----------
 dfn <- read.delim('IA_report_8102015.txt', na.strings = c(" ", ".", "NA", ""))
