@@ -20,3 +20,15 @@ df_exp2 <- read.delim('trial_report_282016_fixed.txt', na.strings = c(" ", ".", 
 td <- df_exp2 %>%
   filter(!is.na(tnum) &  # Filter out fixation check
            !sub == "UNDEFINED") # Filter out undefined trials
+
+# 0 to NA for tutra
+temp <- fix$tuttime == 0
+fix$tutra[temp] <- NA
+
+# Hit for similar trials
+temp2 <- (fix$sim == "True" & fix$resp == "return")
+fix$rtype[temp2] <- "hi"
+
+# False alarm for similar trials
+temp3 <- (fix$sim == "True" & fix$resp == "space")
+fix$rtype[temp3] <- "fa"
