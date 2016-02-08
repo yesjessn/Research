@@ -22,13 +22,13 @@ td <- df_exp2 %>%
            !sub == "UNDEFINED") # Filter out undefined trials
 
 # 0 to NA for tutra
-temp <- fix$tuttime == 0
-fix$tutra[temp] <- NA
+temp <- td$tuttime == 0
+td$tutra[temp] <- NA
 
 # Hit for similar trials
-temp2 <- (fix$sim == "True" & fix$resp == "return")
-fix$rtype[temp2] <- "hi"
+temp2 <- (td$sim == "True" & td$resp == "return")
+td$rtype[temp2] <- "hi"
 
 # False alarm for similar trials
-temp3 <- (fix$sim == "True" & fix$resp == "space")
-fix$rtype[temp3] <- "fa"
+temp3 <- (td$sim == "True" & td$resp == "space")
+td$rtype[temp3] <- "fa"
