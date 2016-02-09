@@ -100,3 +100,51 @@ ggplot(g2, aes(mtut, dp))+
         text              = element_text(face   = "bold",
                                          family = "IrisUPC",
                                          size   = 29))
+
+# Graph 3: mean RT versus mean TUT score by correct rejection, false alarm, hit, and miss
+g3 <- exp2_df2 %>%
+  select(sub, mtutr, mrtr, rtype) %>%
+  unique()
+
+g3cr <- g3 %>%
+  filter(rtype == "cr")
+cor.test(g3cr$mtut, g3cr$mrt)
+
+g3fa <- g3 %>%
+  filter(rtype == "fa")
+cor.test(g3fa$mtut, g3fa$mrt)
+
+g3h <- g3 %>%
+  filter(rtype == "hi")
+cor.test(g3h$mtut, g3h$mrt)
+
+g3m <- g3 %>%
+  filter(rtype == "mi")
+cor.test(g3m$mtut, g3m$mrt)
+
+# Changing names of rtype
+levels(g3$rtype)[levels(g3$rtype)=="cr"] <- "Correct Rejection"
+levels(g3$rtype)[levels(g3$rtype)=="fa"] <- "False Alarm"
+levels(g3$rtype)[levels(g3$rtype)=="hi"] <- "Hit"
+levels(g3$rtype)[levels(g3$rtype)=="mi"] <- "Miss"
+
+ggplot(g3, aes(mtutr, mrtr))+
+  geom_point(colour = "#00003C",
+             size   = 2)+
+  facet_wrap(~rtype)+
+  geom_smooth(colour  = "#00003C",
+              method  = "lm",
+              se      = FALSE)+
+  labs(list(x = "Mean TUT Score",
+            y = "Mean Reaction Time (ms)"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
