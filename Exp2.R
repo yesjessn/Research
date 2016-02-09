@@ -155,3 +155,29 @@ edb <- exp2_df2 %>%
   mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
          mafd = mean(AVERAGE_FIXATION_DURATION, na.rm = TRUE),    # Mean Average Fixation Duration
          mviac = mean(VISITED_INTEREST_AREA_COUNT))               # Mean Visited Interest Area Count
+
+# Graph 4: mean saccade count versus mean TUT
+g4 <- edb %>%
+  select(mtut, msc) %>%
+  unique()
+cor.test(g4$mtut, g4$msc)
+
+ggplot(g4, aes(mtut, msc))+
+  geom_point(colour = "#00003C",
+             size   = 2)+
+  geom_smooth(colour  = "#00003C",
+              method  = "lm",
+              se      = FALSE)+
+  labs(list(x = "Mean TUT Score",
+            y = "Mean Saccade Count"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
