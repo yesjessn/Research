@@ -72,3 +72,31 @@ ggplot(g, aes(mtut))+
         text              = element_text(face   = "bold",
                                          family = "IrisUPC",
                                          size   = 29))
+
+# Graph 2: dprime versus mean TUT
+g2 <- exp2_df2 %>%
+  ungroup() %>%
+  filter(crrate < 1) %>%
+  select(mtut, dp) %>%
+  unique()
+cor.test(g2$mtut, g2$dp)
+
+ggplot(g2, aes(mtut, dp))+
+  geom_point(colour = "#00003C",
+             size   = 2)+
+  geom_smooth(colour  = "#00003C",
+              method  = "lm",
+              se      = FALSE)+
+  labs(list(x = "Mean TUT Score",
+            y = "D'"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
