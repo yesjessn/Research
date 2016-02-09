@@ -148,3 +148,10 @@ ggplot(g3, aes(mtutr, mrtr))+
         text              = element_text(face   = "bold",
                                          family = "IrisUPC",
                                          size   = 29))
+
+# Eye Data: between subjects----------------------
+edb <- exp2_df2 %>%
+  group_by(sub) %>%
+  mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
+         mafd = mean(AVERAGE_FIXATION_DURATION, na.rm = TRUE),    # Mean Average Fixation Duration
+         mviac = mean(VISITED_INTEREST_AREA_COUNT))               # Mean Visited Interest Area Count
