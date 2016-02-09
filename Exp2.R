@@ -38,6 +38,15 @@ exp2_df2 <- td %>%
   group_by(sub) %>%
   mutate(tutra2 = na.locf(tutra,
                           fromLast  = TRUE,
-                          na.rm     = FALSE)) %>% # Add TUT scores from last 
-  filter(!tutra2 == "NA") %>%                     # Remove any trials without a TUT score to fill with
-  
+                          na.rm     = FALSE)) %>%                                 # Add TUT scores from last 
+  filter(!tutra2 == "NA") %>%                                                     # Remove any trials without a TUT score to fill with
+  group_by(sub) %>%
+  mutate(crrate = sum(rtype == 'cr') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # Correct rejection rate
+         hirate = sum(rtype == 'hi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Hit rate
+         farate = sum(rtype == 'fa') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # False alarm rate
+         mirate = sum(rtype == 'mi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Miss rate
+         dp     = qnorm(hirate) - qnorm(farate),                                  # Dprime 
+         mtut   = mean(tutra2)) %>%                                               # Mean TUT
+  group_by(sub, rtype) %>%
+  mutate(mrtr  = mean(fixed),                                                     # Mean reaction time for correct rejection, false alarm, hit, and miss
+         mtutr = mean(tutra2))                                                    # Mean TUT for correct rejection, false alarm, hit, and miss
