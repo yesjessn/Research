@@ -50,3 +50,25 @@ exp2_df2 <- td %>%
   group_by(sub, rtype) %>%
   mutate(mrtr  = mean(fixed),                                                     # Mean reaction time for correct rejection, false alarm, hit, and miss
          mtutr = mean(tutra2))                                                    # Mean TUT for correct rejection, false alarm, hit, and miss
+
+
+# Graph 1: number of subjects with mean tut level
+g <- exp2_df2 %>%
+  ungroup() %>%
+  select(sub, mtut) %>%
+  unique()
+
+ggplot(g, aes(mtut))+
+  geom_histogram(breaks = c(0, 1, 2, 3, 4, 5),
+                 colour = "white",
+                 fill   = "#00003C")+
+  labs(list(x = "Mean TUT Score",
+            y = "Number of Participants"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
