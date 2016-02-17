@@ -14,7 +14,8 @@ loadfonts(device="win")
 
 # Load trial report and fix NA errors
 setwd("C:/Users/Jessica/Documents/Research/data/data_exp2")
-exp2_df <- read.delim('trial_report_2162016_fixed.txt', na.strings = c(" ", ".", "NA", ""))
+exp2_df <- read.delim('trial_report_2162016_fixed.txt',
+                      na.strings = c(" ", ".", "NA", ""))
 
 # Trial data
 td <- exp2_df %>%
@@ -22,11 +23,13 @@ td <- exp2_df %>%
          !sub == "UNDEFINED") # Filter out undefined trials
 
 # Hit for similar trials
-temp2 <- (td$sim == "True" & td$resp == "return")
+temp2 <- (td$sim == "True" & 
+          td$resp == "return")
 td$rtype[temp2] <- "hi"
 
 # False alarm for similar trials
-temp3 <- (td$sim == "True" & td$resp == "space")
+temp3 <- (td$sim == "True" & 
+          td$resp == "space")
 td$rtype[temp3] <- "fa"
 
 
