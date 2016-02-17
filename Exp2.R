@@ -151,10 +151,43 @@ ggplot(g3, aes(mtutr, mrtr))+
 # Eye Data: between subjects----------------------
 edb <- exp2_df2 %>%
   group_by(sub) %>%
-  mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
-         mafd = mean(AVERAGE_FIXATION_DURATION, na.rm = TRUE),    # Mean Average Fixation Duration
-         mviac = mean(VISITED_INTEREST_AREA_COUNT))               # Mean Visited Interest Area Count
+  mutate(msc  = mean(SACCADE_COUNT)) # Mean Saccade Count
 
+  # Fixation Report
+  setwd("C:/Users/Jessica/Documents/Research/data/data_exp2")
+  fr <- read.delim('fixation_report_2162016.txt', na.strings = c(" ", ".", "NA", ""))
+  
+  # Trial data
+  td2 <- fr %>%
+    filter(!is.na(tnum) &       # Filter out fixation check
+           !sub == "UNDEFINEDnull") # Filter out undefined trials
+  
+  # Filter nearest neighbors
+  filter2 <- td2 %>%
+    filter(CURRENT_FIX_NEAREST_INTEREST_AREA_DISTANCE < 2)
+  
+  fr2 <- filter2 %>%
+    group_by(sub, tnum) %>%
+    mutate(afd = mean(CURRENT_FIX_DURATION)) %>%             # Fixation data
+    ungroup() %>%
+    select(sub, tnum, CURRENT_FIX_NEAREST_INTEREST_AREA, TRIAL_FIXATION_TOTAL, afd) %>% 
+    unique() %>%
+    group_by(sub, tnum) %>%
+    mutate(viac = length(CURRENT_FIX_NEAREST_INTEREST_AREA), # Interest area data
+           r = (TRIAL_FIXATION_TOTAL - viac))                # Refixation data
+  
+  fr3 <- fr2 %>%
+    filter(r < 25) %>%
+    ungroup() %>%
+    group_by(sub) %>%
+    mutate(mafd = mean(afd, na.rm = TRUE), # Mean Average Fixation Duration
+           mviac = mean(viac),             # Mean Visited Interest Area Count
+           mr = mean(r, na.rm = TRUE)) %>% # Mean Refixations
+    select(sub, mafd, mviac, mr) %>%
+    unique()
+  
+  edb2 <- merge(edb, fr3, by.x = "sub", by.y = "sub")
+  
 # Graph 4: mean saccade count versus mean TUT
 g4 <- edb %>%
   select(mtut, msc) %>%
