@@ -18,8 +18,8 @@ exp2_df <- read.delim('trial_report_2162016_fixed.txt', na.strings = c(" ", ".",
 
 # Trial data
 td <- exp2_df %>%
-  filter(!is.na(tnum) &         # Filter out fixation check
-           !sub == "UNDEFINED") # Filter out undefined trials
+  filter(!is.na(tnum) &       # Filter out fixation check
+         !sub == "UNDEFINED") # Filter out undefined trials
 
 # Hit for similar trials
 temp2 <- (td$sim == "True" & td$resp == "return")
