@@ -14,16 +14,12 @@ loadfonts(device="win")
 
 # Load trial report and fix NA errors
 setwd("C:/Users/Jessica/Documents/Research/data/data_exp2")
-exp2_df <- read.delim('trial_report_282016_fixed.txt', na.strings = c(" ", ".", "NA", ""))
+exp2_df <- read.delim('trial_report_2162016_fixed.txt', na.strings = c(" ", ".", "NA", ""))
 
 # Trial data
 td <- exp2_df %>%
   filter(!is.na(tnum) &         # Filter out fixation check
            !sub == "UNDEFINED") # Filter out undefined trials
-
-# 0 to NA for tutra
-temp <- td$tuttime == 0
-td$tutra[temp] <- NA
 
 # Hit for similar trials
 temp2 <- (td$sim == "True" & td$resp == "return")
