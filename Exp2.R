@@ -181,3 +181,29 @@ ggplot(g4, aes(mtut, msc))+
         text              = element_text(face   = "bold",
                                          family = "IrisUPC",
                                          size   = 29))
+
+# Graph 5: average fixation duration versus mean TUT
+g4 <- edb %>%
+  select(mtut, mafd) %>%
+  unique()
+cor.test(g4$mtut, g4$mafd)
+
+ggplot(g4, aes(mtut, mafd))+
+  geom_point(colour = "#00003C",
+             size   = 2)+
+  geom_smooth(colour  = "#00003C",
+              method  = "lm",
+              se      = FALSE)+
+  labs(list(x = "Mean TUT Score",
+            y = "Mean Average Fixation Duration (ms)"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
