@@ -20,14 +20,8 @@ df$rtype[df$rtype == "falsealarm"] <- "fa"
 df$rtype[df$rtype == "hit"] <- "hi"
 df$rtype[df$rtype == "miss"] <- "mi"
 
-# Load IA report and fix errors
-setwd("C:/Users/Jessica/Documents/Research/data")
-df2 <- read.delim('IA_report_4282015.txt', na.strings = c(" ", ".", "NA", ""))
-
-m <- merge(df, df2)
-
 # Remove subjects below 40 TUTs (Remove: 1_zw and 45_sjk)
-filter <- m %>%
+filter <- df %>%
   filter(!RECORDING_SESSION_LABEL == "1_zw",
          !RECORDING_SESSION_LABEL == "45_sjk")
 
@@ -36,7 +30,7 @@ td <- filter %>%
   filter(!is.na(tnum))
 
 # Add TUT scores from last and remove any trials without a TUT score to fill with
-df3 <- td %>%
+df2 <- td %>%
   group_by(sub) %>%
   mutate(tutra2 = na.locf(tutra,
                           fromLast  = TRUE,
@@ -44,7 +38,7 @@ df3 <- td %>%
   filter(!is.na(tutra2))
 
 # Physiological Data----------------------
-pd <- df3 %>%
+pd <- df2 %>%
   group_by(sub) %>%
   mutate(crrate = sum(rtype == 'cr') / (sum(rtype == 'cr') + sum(rtype == 'fa')), # Correct Rejection Rate
          hirate = sum(rtype == 'hi') / (sum(rtype == 'hi') + sum(rtype == 'mi')), # Hit Rate
@@ -179,23 +173,62 @@ pd <- df3 %>%
                                            family = "IrisUPC",
                                            size   = 29))
 
-# Eye Data: between subjects----------------------
+# Eye Data 1: between subjects----------------------
 edb <- pd %>%
-  group_by(sub, tnum) %>%
-  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT) %>%  # IA Run Count-Trial Total Visited IA Count
-  filter(r < 25) %>%
   ungroup() %>%
   group_by(sub) %>%
-  mutate(msc  = mean(SACCADE_COUNT),                              # Mean Saccade Count
-         mafd = mean(AVERAGE_FIXATION_DURATION, na.rm = TRUE),    # Mean Average Fixation Duration
-         mviac = mean(VISITED_INTEREST_AREA_COUNT)) %>%           # Mean Visited Interest Area Count
-  mutate(mr = mean(r, na.rm = TRUE))                              # Mean Refixations
+  mutate(msc  = mean(SACCADE_COUNT)) %>% # Mean Saccade Count
+  select(sub, mrt, mtut, msc) %>%
+  unique()
+  
+  # Fixation Report
+  setwd("C:/Users/Jessica/Documents/Research/data")
+  fr <- read.delim('fixation_report_2112016.txt', na.strings = c(" ", ".", "NA", ""))
+  fr$rtype[fr$rtype == "correj"] <- "cr"
+  fr$rtype[fr$rtype == "falsealarm"] <- "fa"
+  fr$rtype[fr$rtype == "hit"] <- "hi"
+  fr$rtype[fr$rtype == "miss"] <- "mi"
+  
+  
+  # Remove subjects below 40 TUTs (Remove: 1_zw and 45_sjk)
+  filter <- fr %>%
+    filter(!RECORDING_SESSION_LABEL == "1_zw",
+           !RECORDING_SESSION_LABEL == "45_sjk")
+  
+  # Trial data
+  td <- filter %>%
+    filter(!is.na(tnum))
+  
+  # Filter nearest neighbors
+  filter2 <- td %>%
+    filter(CURRENT_FIX_NEAREST_INTEREST_AREA_DISTANCE < 2)
+  
+  
+  fr2 <- filter2 %>%
+    group_by(sub, tnum) %>%
+    mutate(afd = mean(CURRENT_FIX_DURATION)) %>%             # Fixation data
+    ungroup() %>%
+    select(sub, tnum, CURRENT_FIX_NEAREST_INTEREST_AREA, TRIAL_FIXATION_TOTAL, afd) %>% 
+    unique() %>%
+    group_by(sub, tnum) %>%
+    mutate(viac = length(CURRENT_FIX_NEAREST_INTEREST_AREA), # Interest area data
+           r = (TRIAL_FIXATION_TOTAL - viac))                # Refixation data
+
+  fr3 <- fr2 %>%
+    filter(r < 25) %>%
+    ungroup() %>%
+    group_by(sub) %>%
+    mutate(mafd = mean(afd, na.rm = TRUE), # Mean Average Fixation Duration
+           mviac = mean(viac),             # Mean Visited Interest Area Count
+           mr = mean(r, na.rm = TRUE)) %>% # Mean Refixations
+    select(sub, mafd, mviac, mr) %>%
+    unique()
+  
+  edb2 <- merge(edb, fr3, by.x = "sub", by.y = "sub")
   
   # Centered Data
-  cd2 <- edb %>%
+  cd2 <- edb2 %>%
     ungroup() %>%
-    select(mtut, msc, mafd, mviac, mr) %>%
-    unique() %>%
     mutate(mcmsc  = msc - mean(msc),      # Mean Centered Mean Saccade Count
            mcmafd = mafd - mean(mafd),    # Mean Centered Mean Average Fixation Duration
            mcmiac = mviac - mean(mviac),  # Mean Centered Mean Visited Interest Area Count
@@ -206,7 +239,7 @@ edb <- pd %>%
     select(mtut, mcmsc, mcmafd, mcmiac, mcmr) %>%
     unique()
   cor(cm)
-  cor.test(cm$mcmafd, cm$mtut)
+  cor.test(cm$mcmr, cm$mtut)
 
   # Table 3: linear regression of mean TUT score, mean centered fixation duration, and mean centered visited interest area count
   lm <- lm(mtut ~ mcmafd + mcmiac, cm)
@@ -296,18 +329,21 @@ edb <- pd %>%
 # Eye Data: within subject----------------------
 edw <- pd %>%
   group_by(sub) %>%
-  mutate(sc   = SACCADE_COUNT,                                # Saccade Count
-         afd  = AVERAGE_FIXATION_DURATION,                    # Average Fixation Duration
-         viac = VISITED_INTEREST_AREA_COUNT) %>%              # Visited Interest Area Count
-  group_by(sub, tnum) %>%
-  mutate(r = sum(IA_RUN_COUNT)-TRIAL_TOTAL_VISITED_IA_COUNT)  # IA Run Count-Trial Total Visited IA Count
+  mutate(sc   = SACCADE_COUNT) %>% # Saccade Count
+  select(sub, tnum, rt, tutra2, sc)
 
+  fr4 <- fr2 %>%
+    ungroup() %>%
+    group_by(sub) %>%
+    select(sub, tnum, afd, viac, r) %>%
+    unique()
+  
+  edw2 <- merge(edw, fr4)
+  
 # Centered Data and Remove Abnormalities
-cd3 <- edw %>%
+cd3 <- edw2 %>%
  ungroup() %>%
   filter(r < 25, sc > 0, !afd == "NA") %>%
-  select(sub, tnum, rt, sc, afd, viac, r, tutra2) %>%
-  unique() %>%
   group_by(sub) %>%
   mutate(mcrt   = rt - mean(rt),     # Mean Centered Reaction Time
          mcafd  = afd - mean(afd),   # Mean Centered Average Fixation Duration
@@ -322,44 +358,11 @@ cd3 <- edw %>%
   lmem2 <- lmer(tutra2 ~ mcsc + (mcsc|sub), cd3)
   summary(lmem2)
   
-  lmem <- lmer(tutra2 ~ mcafd + (mcafd|sub), cd3)
-  summary(lmem)
-  
-  lmem3 <- lmer(tutra2 ~ mcviac + (mcviac|sub), cd3)
+  lmem3 <- lmer(tutra2 ~ mcafd + (mcafd|sub), cd3)
   summary(lmem3)
   
-  lmem4 <- lmer(tutra2 ~ mcr + (mcr|sub), cd3)
+  lmem4 <- lmer(tutra2 ~ mcviac + (mcviac|sub), cd3)
   summary(lmem4)
-
-
-# New IA Report----------
-dfn <- read.delim('IA_report_8102015.txt', na.strings = c(" ", ".", "NA", ""))
-df$rtype[df$rtype == "correj"] <- "cr"
-df$rtype[df$rtype == "falsealarm"] <- "fa"
-df$rtype[df$rtype == "hit"] <- "hi"
-df$rtype[df$rtype == "miss"] <- "mi"
-
-# Remove subjects below 40 TUTs (Remove: 1_zw and 45_sjk)
-fn <- dfn %>%
-  filter(!RECORDING_SESSION_LABEL == "1_zw",
-         !RECORDING_SESSION_LABEL == "45_sjk")
-
-# Trial data
-tdn <- fn %>%
-  filter(!is.na(tnum))
-
-# Add TUT scores from last and remove any trials without a TUT score to fill with
-dfn2 <- tdn %>%
-  group_by(sub) %>%
-  mutate(tutra2 = na.locf(tutra,
-                          fromLast  = TRUE,
-                          na.rm     = FALSE)) %>%
-  filter(!is.na(tutra2))
-
-# See Unique Refixations
-dfn3 <- dfn2 %>%
-  select(sub, tutra2, tcat, IA_LABEL, IA_RUN_COUNT) %>%
-  filter(IA_RUN_COUNT > 1) %>%
-  group_by(sub) %>%
-  count(sub, tcat, IA_LABEL) %>%
-  filter(IA_LABEL == "fixation")
+  
+  lmem5 <- lmer(tutra2 ~ mcr + (mcr|sub), cd3)
+  summary(lmem5)
