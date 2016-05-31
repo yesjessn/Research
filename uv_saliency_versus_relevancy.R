@@ -10,23 +10,23 @@ library(zoo)
 # Import fonts
 loadfonts(device="win")
 
-setwd("C:/Users/Jessica/Documents/Research/data/data_exp2")
-c_df <- read.csv('Cats_recorder.csv') %>%
+setwd("R:/jessica/Documents/Research/data/data_exp2")
+uv_df <- read.csv('Utility_Vehicles_recorder.csv') %>%
   select(tnum, name, position)
 fr <- read.delim('fixation_report_4122016.txt', na.strings = c(" ", ".", "NA", ""))
 
-names(c_df)[names(c_df)=="tnum"] <- "recorder_trial"
+names(uv_df)[names(uv_df)=="tnum"] <- "recorder_trial"
 
-c_df$position[c_df$position==6] <- "position_6"
-c_df$position[c_df$position==7] <- "position_7"
-c_df$position[c_df$position==8] <- "position_8"
-c_df$position[c_df$position==9] <- "position_9"
-c_df$position[c_df$position==4] <- "position_4"
-c_df$position[c_df$position==5] <- "position_5"
-c_df$position[c_df$position==0] <- "position_0"
-c_df$position[c_df$position==1] <- "position_1"
-c_df$position[c_df$position==2] <- "position_2"
-c_df$position[c_df$position==3] <- "position_3"
+uv_df$position[uv_df$position==6] <- "position_6"
+uv_df$position[uv_df$position==7] <- "position_7"
+uv_df$position[uv_df$position==8] <- "position_8"
+uv_df$position[uv_df$position==9] <- "position_9"
+uv_df$position[uv_df$position==4] <- "position_4"
+uv_df$position[uv_df$position==5] <- "position_5"
+uv_df$position[uv_df$position==0] <- "position_0"
+uv_df$position[uv_df$position==1] <- "position_1"
+uv_df$position[uv_df$position==2] <- "position_2"
+uv_df$position[uv_df$position==3] <- "position_3"
 
 
 # Trial data-----
@@ -53,13 +53,13 @@ temp2 <- (filter2$sim == "True" &
 filter2$rtype[temp2] <- "fa"
 
 # Cats Data-----
-df_c <- filter2 %>%
-  filter(tcateg == "Cats") %>%
+df_uv <- filter2 %>%
+  filter(tcateg == "Utility_Vehicles") %>%
   group_by(sub, tnum, CURRENT_FIX_NEAREST_INTEREST_AREA_LABEL) %>%
   mutate(afd = mean(CURRENT_FIX_DURATION)) %>%
   select(sub, tcateg, recorder_trial, CURRENT_FIX_NEAREST_INTEREST_AREA_LABEL, tutra2, afd)
 
-ranks <- read.csv("ranks_edited2.csv", stringsAsFactors=FALSE)
+ranks <- read.csv("uv_ranks_edited2.csv", stringsAsFactors=FALSE)
 
 ranks2 <- ranks %>%
   melt(id.vars = c("recorder_trial"))
@@ -93,10 +93,10 @@ ranks2$position[ranks2$position==9] <- "position_2"
 ranks2$position[ranks2$position==10] <- "position_3"
 
 
-re_df <- merge(c_df, ranks2)
+re_df <- merge(uv_df, ranks2)
 
 
-split <- cSplit(df_c, "CURRENT_FIX_NEAREST_INTEREST_AREA_LABEL", ".")
+split <- cSplit(df_uv, "CURRENT_FIX_NEAREST_INTEREST_AREA_LABEL", ".")
 
 names(split)[names(split)=="CURRENT_FIX_NEAREST_INTEREST_AREA_LABEL_1"] <- "relevancy_rank"
 names(split)[names(split)=="CURRENT_FIX_NEAREST_INTEREST_AREA_LABEL_2"] <- "name"
@@ -107,25 +107,25 @@ split2 <- split %>%
   filter(!is.na(name))
 
 split2 <- transform(split2, relevancy_rank = as.character(relevancy_rank))
-split2$relevancy_rank[split2$relevancy_rank=="Cats"] <- 0
-split2$relevancy_rank[split2$relevancy_rank=="Dogs"] <- 1
-split2$relevancy_rank[split2$relevancy_rank=="Hoofed_Animals"] <- 1
-split2$relevancy_rank[split2$relevancy_rank=="Rodentia"] <- 1
-split2$relevancy_rank[split2$relevancy_rank=="Reptiles"] <- 2
-split2$relevancy_rank[split2$relevancy_rank=="Insects"] <- 2
-split2$relevancy_rank[split2$relevancy_rank=="Arachnids"] <- 2
-split2$relevancy_rank[split2$relevancy_rank=="Flowers"] <- 3
-split2$relevancy_rank[split2$relevancy_rank=="Vegetables"] <- 3
-split2$relevancy_rank[split2$relevancy_rank=="Fruits"] <- 3
-split2$relevancy_rank[split2$relevancy_rank=="Kitchen_Tools"] <- 4
-split2$relevancy_rank[split2$relevancy_rank=="Office_Tools"] <- 4
-split2$relevancy_rank[split2$relevancy_rank=="Auto_Mechanic_Tools"] <- 4
-split2$relevancy_rank[split2$relevancy_rank=="Tops"] <- 5
-split2$relevancy_rank[split2$relevancy_rank=="Bottoms"] <- 5
-split2$relevancy_rank[split2$relevancy_rank=="Shoes"] <- 5
-split2$relevancy_rank[split2$relevancy_rank=="Boats"] <- 6
-split2$relevancy_rank[split2$relevancy_rank=="Cars"] <- 6
-split2$relevancy_rank[split2$relevancy_rank=="Aircraft"] <- 6
+split2$relevancy_rank[split2$relevancy_rank=="Utility_Vehicles"] <- 0
+split2$relevancy_rank[split2$relevancy_rank=="Cars"] <- 1
+split2$relevancy_rank[split2$relevancy_rank=="Aircraft"] <- 1
+split2$relevancy_rank[split2$relevancy_rank=="Boats"] <- 1
+split2$relevancy_rank[split2$relevancy_rank=="Auto_Mechanic_Tools"] <- 2
+split2$relevancy_rank[split2$relevancy_rank=="Kitchen_Tools"] <- 2
+split2$relevancy_rank[split2$relevancy_rank=="Office_Tools"] <- 2
+split2$relevancy_rank[split2$relevancy_rank=="Shoes"] <- 3
+split2$relevancy_rank[split2$relevancy_rank=="Tops"] <- 3
+split2$relevancy_rank[split2$relevancy_rank=="Bottoms"] <- 3
+split2$relevancy_rank[split2$relevancy_rank=="Insects"] <- 4
+split2$relevancy_rank[split2$relevancy_rank=="Reptiles"] <- 4
+split2$relevancy_rank[split2$relevancy_rank=="Arachnids"] <- 4
+split2$relevancy_rank[split2$relevancy_rank=="Vegetables"] <- 5
+split2$relevancy_rank[split2$relevancy_rank=="Fruits"] <- 5
+split2$relevancy_rank[split2$relevancy_rank=="Flowers"] <- 5
+split2$relevancy_rank[split2$relevancy_rank=="Rodentia"] <- 6
+split2$relevancy_rank[split2$relevancy_rank=="Dogs"] <- 6
+split2$relevancy_rank[split2$relevancy_rank=="Hoofed_Animals"] <- 6
 
 
 t_c <-  merge(split2, re_df, by=c("recorder_trial", "name"))
@@ -166,11 +166,7 @@ ggplot() +
         text              = element_text(face   = "bold",
                                          family = "Times New Roman",
                                          size   = 29))
-non-looks = 0 (average fixation duration 0 ms) <- maybe do this later
-likihood = don't look at it , it is a 0; divided by 10 (10 items show up) or number of looks in the trial
-  1 if they looked at it, 0 if they didn't: answer would be between 1-0 aka a likihood of looking
-mean within subject (bin objects that have the same saliency and relevancy score) then mean across subject
-category between 0-6
+
 
 temp_df <- split2 %>%
   select(recorder_trial, sub) %>%
@@ -185,25 +181,25 @@ l_df <- merge(temp_df2, temp_df3, by=c("recorder_trial", "sub", "name"), all = T
   mutate(relevancy_rank = name)
 
 l_df <- transform(l_df, relevancy_rank = as.character(relevancy_rank))
-l_df$relevancy_rank[grepl("cat",l_df$relevancy_rank)]<-0
-l_df$relevancy_rank[grepl("dog",l_df$relevancy_rank)]<-1
-l_df$relevancy_rank[grepl("hoo",l_df$relevancy_rank)]<-1
-l_df$relevancy_rank[grepl("rod",l_df$relevancy_rank)]<-1
-l_df$relevancy_rank[grepl("rep",l_df$relevancy_rank)]<-2
-l_df$relevancy_rank[grepl("ins",l_df$relevancy_rank)]<-2
-l_df$relevancy_rank[grepl("ara",l_df$relevancy_rank)]<-2
-l_df$relevancy_rank[grepl("flo",l_df$relevancy_rank)]<-3
-l_df$relevancy_rank[grepl("veg",l_df$relevancy_rank)]<-3
-l_df$relevancy_rank[grepl("fru",l_df$relevancy_rank)]<-3
-l_df$relevancy_rank[grepl("kit",l_df$relevancy_rank)]<-4
-l_df$relevancy_rank[grepl("off",l_df$relevancy_rank)]<-4
-l_df$relevancy_rank[grepl("aut",l_df$relevancy_rank)]<-4
-l_df$relevancy_rank[grepl("top",l_df$relevancy_rank)]<-5
-l_df$relevancy_rank[grepl("bot",l_df$relevancy_rank)]<-5
-l_df$relevancy_rank[grepl("sho",l_df$relevancy_rank)]<-5
-l_df$relevancy_rank[grepl("boa",l_df$relevancy_rank)]<-6
-l_df$relevancy_rank[grepl("car",l_df$relevancy_rank)]<-6
-l_df$relevancy_rank[grepl("air",l_df$relevancy_rank)]<-6
+l_df$relevancy_rank[grepl("uti",l_df$relevancy_rank)]<-0
+l_df$relevancy_rank[grepl("car",l_df$relevancy_rank)]<-1
+l_df$relevancy_rank[grepl("air",l_df$relevancy_rank)]<-1
+l_df$relevancy_rank[grepl("boa",l_df$relevancy_rank)]<-1
+l_df$relevancy_rank[grepl("aut",l_df$relevancy_rank)]<-2
+l_df$relevancy_rank[grepl("kit",l_df$relevancy_rank)]<-2
+l_df$relevancy_rank[grepl("off",l_df$relevancy_rank)]<-2
+l_df$relevancy_rank[grepl("sho",l_df$relevancy_rank)]<-3
+l_df$relevancy_rank[grepl("top",l_df$relevancy_rank)]<-3
+l_df$relevancy_rank[grepl("bot",l_df$relevancy_rank)]<-3
+l_df$relevancy_rank[grepl("ins",l_df$relevancy_rank)]<-4
+l_df$relevancy_rank[grepl("rep",l_df$relevancy_rank)]<-4
+l_df$relevancy_rank[grepl("ara",l_df$relevancy_rank)]<-4
+l_df$relevancy_rank[grepl("veg",l_df$relevancy_rank)]<-5
+l_df$relevancy_rank[grepl("fru",l_df$relevancy_rank)]<-5
+l_df$relevancy_rank[grepl("flo",l_df$relevancy_rank)]<-5
+l_df$relevancy_rank[grepl("rod",l_df$relevancy_rank)]<-6
+l_df$relevancy_rank[grepl("dog",l_df$relevancy_rank)]<-6
+l_df$relevancy_rank[grepl("hoo",l_df$relevancy_rank)]<-6
 
 
 l_df <- transform(l_df, tcateg = as.numeric(tcateg))
