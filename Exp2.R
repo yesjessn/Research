@@ -13,8 +13,8 @@ library(lmerTest)
 loadfonts(device="win")
 
 # Load trial report and fix NA errors
-setwd("C:/Users/Jessica/Documents/Research/data/data_exp2")
-exp2_df <- read.delim('trial_report_2162016_fixed.txt',
+setwd("R:/jessica/Documents/GitHub/Research")
+exp2_df <- read.delim('trial_report_3162016_fixed.txt',
                       na.strings = c(" ", ".", "NA", ""))
 
 # Trial data
@@ -154,8 +154,8 @@ edb <- exp2_df2 %>%
   mutate(msc  = mean(SACCADE_COUNT)) # Mean Saccade Count
 
   # Fixation Report
-  setwd("C:/Users/Jessica/Documents/Research/data/data_exp2")
-  fr <- read.delim('fixation_report_2162016.txt', na.strings = c(" ", ".", "NA", ""))
+  setwd("R:/jessica/Documents/GitHub/Research")
+  fr <- read.delim('fixation_report_3162016.txt', na.strings = c(" ", ".", "NA", ""))
   
   # Trial data
   td2 <- fr %>%
@@ -189,7 +189,7 @@ edb <- exp2_df2 %>%
   edb2 <- merge(edb, fr3, by.x = "sub", by.y = "sub")
   
 # Graph 4: mean saccade count versus mean TUT
-g4 <- edb %>%
+g4 <- edb2 %>%
   select(mtut, msc) %>%
   unique()
 cor.test(g4$mtut, g4$msc)
@@ -215,7 +215,7 @@ ggplot(g4, aes(mtut, msc))+
                                          size   = 29))
 
 # Graph 5: average fixation duration versus mean TUT
-g4 <- edb %>%
+g4 <- edb2 %>%
   select(mtut, mafd) %>%
   unique()
 cor.test(g4$mtut, g4$mafd)
@@ -228,6 +228,58 @@ ggplot(g4, aes(mtut, mafd))+
               se      = FALSE)+
   labs(list(x = "Mean TUT Score",
             y = "Mean Average Fixation Duration (ms)"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
+
+# Graph 6: visited interest area count versus mean TUT
+g4 <- edb2 %>%
+  select(mtut, mviac) %>%
+  unique()
+cor.test(g4$mtut, g4$mviac)
+
+ggplot(g4, aes(mtut, mviac))+
+  geom_point(colour = "#00003C",
+             size   = 2)+
+  geom_smooth(colour  = "#00003C",
+              method  = "lm",
+              se      = FALSE)+
+  labs(list(x = "Mean TUT Score",
+            y = "Mean Visited Interest Area Count"))+
+  theme(axis.title.x      = element_text(vjust = -0.2),
+        axis.title.y      = element_text(vjust = 1.2),
+        legend.text       = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29),
+        panel.background  = element_rect(fill = "white"),
+        panel.grid.major  = element_line(colour = "white"),
+        panel.grid.minor  = element_line(colour = "white"),
+        text              = element_text(face   = "bold",
+                                         family = "IrisUPC",
+                                         size   = 29))
+
+# Graph 7: refixation versus mean TUT
+g4 <- edb2 %>%
+  select(mtut, mr) %>%
+  unique()
+cor.test(g4$mtut, g4$mr)
+
+ggplot(g4, aes(mtut, mr))+
+  geom_point(colour = "#00003C",
+             size   = 2)+
+  geom_smooth(colour  = "#00003C",
+              method  = "lm",
+              se      = FALSE)+
+  labs(list(x = "Mean TUT Score",
+            y = "Mean Refixation"))+
   theme(axis.title.x      = element_text(vjust = -0.2),
         axis.title.y      = element_text(vjust = 1.2),
         legend.text       = element_text(face   = "bold",

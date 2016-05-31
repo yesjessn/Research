@@ -13,8 +13,8 @@ library(lmerTest)
 loadfonts(device="win")
 
 # Load trial report and fix errors
-setwd("C:/Users/Jessica/Documents/Research/data")
-df <- read.delim('trial_report_32015.txt', na.strings = c(" ", ".", "NA", ""))
+setwd("R:/jessica/Documents/GitHub/Research")
+df <- read.delim('trial_report_3162015.txt', na.strings = c(" ", ".", "NA", ""))
 df$rtype[df$rtype == "correj"] <- "cr"
 df$rtype[df$rtype == "falsealarm"] <- "fa"
 df$rtype[df$rtype == "hit"] <- "hi"
@@ -182,8 +182,8 @@ edb <- pd %>%
   unique()
   
   # Fixation Report
-  setwd("C:/Users/Jessica/Documents/Research/data")
-  fr <- read.delim('fixation_report_2112016.txt', na.strings = c(" ", ".", "NA", ""))
+  setwd("R:/jessica/Documents/GitHub/Research")
+  fr <- read.delim('fixation_report_3162016.txt', na.strings = c(" ", ".", "NA", ""))
   fr$rtype[fr$rtype == "correj"] <- "cr"
   fr$rtype[fr$rtype == "falsealarm"] <- "fa"
   fr$rtype[fr$rtype == "hit"] <- "hi"
